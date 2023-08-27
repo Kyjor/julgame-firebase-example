@@ -2,6 +2,7 @@ using JulGame.MainLoop
 using Firebase
 
 mutable struct GameManager
+    blockedSpaces
     currentGamePhase
     gameId
     gamePhases
@@ -33,6 +34,7 @@ mutable struct GameManager
             "POST"
             ]
         this.currentGamePhase = this.gamePhases[1]
+        this.blockedSpaces = Dict()
 
         return this
     end
@@ -164,7 +166,18 @@ function Base.getproperty(this::GameManager, s::Symbol)
                     if playerId == this.user["localId"] # local player
                     elseif haskey(this.otherPlayers, playerId) # update existing other player
                         this.otherPlayers[playerId][1] = player.second
-                        this.otherPlayers[playerId][2].getTransform().position = JulGame.Math.Vector2f(player.second["x"], player.second["y"])
+                        otherPlayerCurrentPosition = this.otherPlayers[playerId][2].getTransform().position
+                        otherPlayerCurrentPositionInGrid = "$(Int(otherPlayerCurrentPosition.x) + 5)x$(Int(otherPlayerCurrentPosition.y) + 3)"
+                        # Only update position if it has changed 
+                        if otherPlayerCurrentPosition.x != player.second["x"] || otherPlayerCurrentPosition.y != player.second["y"]
+                            if haskey(this.blockedSpaces, otherPlayerCurrentPositionInGrid)
+                                delete!(this.blockedSpaces, otherPlayerCurrentPositionInGrid)
+                            end
+                            otherPlayerNextPosition = JulGame.Math.Vector2f(player.second["x"], player.second["y"])
+                            this.blockedSpaces["$(Int(otherPlayerNextPosition.x) + 5)x$(Int(otherPlayerNextPosition.y) + 3)"] = true
+                            this.otherPlayers[playerId][2].getTransform().position = otherPlayerNextPosition
+                        end
+
                     elseif !haskey(this.otherPlayers, playerId) # add new other player
                         this.otherPlayers[playerId] = [player.second, this.spawnOtherPlayer()]
                     # todo: remove player
