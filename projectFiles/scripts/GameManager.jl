@@ -53,10 +53,11 @@ function Base.getproperty(this::GameManager, s::Symbol)
             MAIN.scene.camera.target = JulGame.TransformModule.Transform(JulGame.Math.Vector2f(-3,2))
             MAIN.cameraBackgroundColor = [0, 128, 128]
             name = MAIN.globals[1]
+            color = MAIN.globals[2]
             Firebase.realdb_init("https://multiplayer-demo-2f287-default-rtdb.firebaseio.com")
             Firebase.set_webapikey("AIzaSyCxuzQNfmIMijosSYn8UWfQGOrQYARJ4iE")
             this.user = Firebase.firebase_signinanon()
-            this.localPlayerState = Dict("name" => name, "color" => "blue", "x" => 0, "y" => 0, "coins" => 0, "lastUpdate" => 0, "isReady" => false, "gameId" => this.gameId)
+            this.localPlayerState = Dict("name" => name, "color" => color, "x" => 0, "y" => 0, "coins" => 0, "lastUpdate" => 0, "isReady" => false, "gameId" => this.gameId)
             this.playerId = Firebase.realdb_postRealTime("/lobby/$(this.user["localId"])", this.localPlayerState, this.user["idToken"])["name"]
         end
     elseif s == :update
@@ -248,23 +249,26 @@ function Base.getproperty(this::GameManager, s::Symbol)
         end
     elseif s == :spawnLocalPlayer
         function (player)
+            colors = ["blue", "pink", "red", "yellow", "green", "purple"]
+            colorIndex = findfirst(x -> x == player.second["color"], colors) - 1
+
             sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),"..",".."), "characters.png", false)
             sprite.injectRenderer(MAIN.renderer)
-            sprite.crop = JulGame.Math.Vector4(16,0,16,16)
+            sprite.crop = JulGame.Math.Vector4(16,colorIndex*16,16,16)
             newPlayer = JulGame.EntityModule.Entity("$(MAIN.globals[1])", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["x"]-5, player.second["y"]-3)), [sprite])
-            playerMovement = PlayerMovement()
-            newPlayer.scripts = [playerMovement]
-            playerMovement.setParent(newPlayer)
-            playerMovement.initialize()
+            newPlayer.addScript(PlayerMovement())
 
             push!(MAIN.scene.entities, newPlayer)
             return newPlayer
         end
     elseif s == :spawnOtherPlayer
         function (player)
+            colors = ["blue", "pink", "red", "yellow", "green", "purple"]
+            colorIndex = findfirst(x -> x == player.second["color"], colors) - 1
+
             sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),"..",".."), "characters.png", false)
             sprite.injectRenderer(MAIN.renderer)
-            sprite.crop = JulGame.Math.Vector4(16,0,16,16)
+            sprite.crop = JulGame.Math.Vector4(16,colorIndex*16,16,16)
             newPlayer = JulGame.EntityModule.Entity("other player", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["x"]-5, player.second["y"]-3)), [sprite])
 
             push!(MAIN.scene.entities, newPlayer)

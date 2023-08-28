@@ -12,11 +12,43 @@ while true
         break
     end
 end
+
+
+println("Choose your color:")
+println("1: blue")
+println("2: pink")
+println("3: red")
+println("4: yellow")
+println("5: green")
+println("6: purple")
+
+colorChoice = 0
+
+while true
+    color_input = readline(stdin)
+    try
+        global colorChoice = parse(Int, color_input)
+        if 1 <= colorChoice <= 6
+            break
+        else
+            println("Invalid choice. Please enter a number between 1 and 6.")
+        end
+    catch
+        println("Invalid input. Please enter a number between 1 and 6.")
+    end
+end
+
+# Map the color choice to the corresponding color
+colors = ["blue", "pink", "red", "yellow", "green", "purple"]
+chosenColor = colors[colorChoice]
+
+println("Hello, $(playerName)! You chose the color $chosenColor.")
+
 #function run()
     dir = @__DIR__
     #dir = pwd()
     scene = Scene(joinpath(dir, "..", ".."), "scene.json")
-    main = scene.init(false, Vector2(1280, 720), 1.25, [playerName])
+    main = scene.init(false, Vector2(1280, 720), 1.25, [playerName, chosenColor])
     return main
 #end
     #julia_main() = run()
