@@ -3,13 +3,12 @@ using JulGame.MainLoop
 using JulGame.SoundSourceModule
 
 mutable struct PlayerMovement
-    animator
+    #animator
     blockedSpaces
     canMove
     gameManager
     input
     isFacingRight
-    jumpSound
     parent
     positionBeforeMoving
     targetPosition
@@ -24,7 +23,6 @@ mutable struct PlayerMovement
         this.input = C_NULL
         this.isFacingRight = true
         this.parent = C_NULL
-        this.jumpSound = SoundSourceModule.SoundSource(joinpath(pwd(),"..",".."), "Jump.wav", 1, 50)
         this.gameManager = MAIN.scene.entities[1].scripts[1]
         this.timeBetweenMoves = 0.2
         this.timer = 0.0
@@ -52,9 +50,6 @@ end
 function Base.getproperty(this::PlayerMovement, s::Symbol)
     if s == :initialize
         function()
-            this.animator = this.parent.getAnimator()
-            this.animator.currentAnimation = this.animator.animations[1]
-            this.animator.currentAnimation.animatedFPS = 0
             this.targetPosition = JulGame.Math.Vector2f(this.parent.getTransform().position.x, this.parent.getTransform().position.y)
         end
     elseif s == :update
@@ -126,19 +121,6 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
     elseif s == :setParent
         function(parent)
             this.parent = parent
-            collisionEvent = @event begin
-                this.handleCollisions()
-            end
-            this.parent.getComponent(Collider).addCollisionEvent(collisionEvent)
-        end
-    elseif s == :handleCollisions
-        function()
-            return
-            collider = this.parent.getComponent(Collider)
-            for collision in collider.currentCollisions
-                if collision.tag == "coin"
-                end
-            end
         end
     else
         try

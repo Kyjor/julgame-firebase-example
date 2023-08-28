@@ -3,9 +3,12 @@ using Firebase
 
 mutable struct GameManager
     blockedSpaces
+    coinSpaces
     currentGamePhase
     gameId
     gamePhases
+    gameState
+    isLocalPlayerSpawned
     localPlayerState
     otherPlayers
     parent
@@ -20,6 +23,7 @@ mutable struct GameManager
     function GameManager()
         this = new()
 
+        this.gameState = C_NULL
         this.roomState = C_NULL
         this.tickRate = 12
         this.tickTimer = 0.0
@@ -29,13 +33,16 @@ mutable struct GameManager
         this.gameId = "null"
         this.gamePhases = [
             "LOBBY",
+            "SETUP",
             "PRE",
             "GAME",
             "POST"
             ]
         this.currentGamePhase = this.gamePhases[1]
         this.blockedSpaces = Dict()
-
+        this.coinSpaces = C_NULL
+        this.isLocalPlayerSpawned = false
+        
         return this
     end
 end
@@ -58,6 +65,9 @@ function Base.getproperty(this::GameManager, s::Symbol)
 
             # IN LOBBY
             # We will be readying up and waiting for a game id to move on to next phase
+            if MAIN.input.getButtonPressed("L")
+                println(Firebase.realdb_getRealTime("/games/$(this.gameId)", this.user["idToken"]))
+            end
             if this.currentGamePhase == this.gamePhases[1]
                 if MAIN.input.getButtonPressed("R")
                     this.readyUp()
@@ -75,23 +85,50 @@ function Base.getproperty(this::GameManager, s::Symbol)
                         print(e)
                     end
                 elseif this.gameId != "null" && this.localPlayerState["isReady"] 
-                    this.currentGamePhase = this.gamePhases[3]
+                    this.currentGamePhase = this.gamePhases[2]
                 end
             end
 
-            # PREGAME, OUT OF LOBBY
+            # SETUP PHASE
+            # We will be spawning other players and ourself in here
+            if this.currentGamePhase == this.gamePhases[2]
+                #println("test")
+                if this.tickTimer >= 1/this.tickRate
+                    this.task = this.get()
+                    this.tickTimer = 0.0
+                end
+
+                if this.gameState == C_NULL || this.gameState === nothing
+                    return
+                end
+
+                # println(this.gameState["gameState"]["coins"] != C_NULL)
+                # println(this.gameState["gameState"]["coins"] !== nothing)
+                # println(this.gameState["players"] != C_NULL) 
+                # println(this.gameState["players"] !== nothing)
+                #println(this.gameState)
+                if haskey(this.gameState, "gameState") && haskey(this.gameState["gameState"], "coins") && haskey(this.gameState, "players")
+                    #println(this.gameState)
+                    sleep(0.001)
+                    this.spawnAllCoins()
+                    this.spawnAllPlayers()
+                    this.currentGamePhase = this.gamePhases[3]
+                end
+            end
+            
+            # PREGAME
             # We need to wait for game state to be set here. We need to get:
             # My player position, other player positions & colors, and coin positions. 
             # Based on all of this, we spawn our player, other players, and coins
             # When "gameReady", count down from 3? Start the game
-            if this.currentGamePhase == this.gamePhases[2]
-                println("test")
+            if this.currentGamePhase == this.gamePhases[3]
+                this.currentGamePhase = this.gamePhases[4]
             end
 
             # CURRENTLY IN GAME
             # Player should be able to move to unoccupied squares. If other players are on square, block our movement
             # If we land on a coin square, collect it
-            if this.currentGamePhase == this.gamePhases[3]
+            if this.currentGamePhase == this.gamePhases[4]
                 sleep(0.001)
                 if this.roomState != C_NULL
                     this.processRoomState()
@@ -112,16 +149,6 @@ function Base.getproperty(this::GameManager, s::Symbol)
             # if this.currentGamePhase == this.gamePhases[3] && if this.currentGamePhase == this.gamePhases[4]
 
             # end
-
-            # # if this.roomState !== nothing && this.roomState != C_NULL # Not sure why this is needed, but it doesn't work without it
-            # #     try
-            # #         this.roomState = C_NULL
-            # #     catch e
-            # #         this.task = C_NULL
-            # #         println(e)
-            # #         Base.show_backtrace(stderr, catch_backtrace())
-            # #     end
-            # # end
         end
     elseif s == :setParent 
         function(parent)
@@ -129,16 +156,17 @@ function Base.getproperty(this::GameManager, s::Symbol)
         end
     elseif s == :get
         function ()
-            res = nothing
             try
                 @async begin
-                    this.roomState = Firebase.realdb_getRealTime("/games/$(this.gameId)/players", this.user["idToken"])
+                    game = Firebase.realdb_getRealTime("/games/$(this.gameId)", this.user["idToken"])
+                    this.roomState = game["players"]
+                    this.gameState = game
+                    this.coinSpaces = game["gameState"]["coins"]
                 end
                     sleep(0.001)
             catch e
                 print(e)
             end
-            this.roomState = res
         end
     elseif s == :updatePos
         function (position)
@@ -169,7 +197,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
                         otherPlayerCurrentPosition = this.otherPlayers[playerId][2].getTransform().position
                         otherPlayerCurrentPositionInGrid = "$(Int(otherPlayerCurrentPosition.x) + 5)x$(Int(otherPlayerCurrentPosition.y) + 3)"
                         # Only update position if it has changed 
-                        if otherPlayerCurrentPosition.x != player.second["x"] || otherPlayerCurrentPosition.y != player.second["y"]
+                        if (otherPlayerCurrentPosition.x + 5) != player.second["x"] || (otherPlayerCurrentPosition.y + 3) != player.second["y"]
                             if haskey(this.blockedSpaces, otherPlayerCurrentPositionInGrid)
                                 delete!(this.blockedSpaces, otherPlayerCurrentPositionInGrid)
                             end
@@ -177,21 +205,67 @@ function Base.getproperty(this::GameManager, s::Symbol)
                             this.blockedSpaces["$(Int(otherPlayerNextPosition.x) + 5)x$(Int(otherPlayerNextPosition.y) + 3)"] = true
                             this.otherPlayers[playerId][2].getTransform().position = otherPlayerNextPosition
                         end
-
-                    elseif !haskey(this.otherPlayers, playerId) # add new other player
-                        this.otherPlayers[playerId] = [player.second, this.spawnOtherPlayer()]
                     # todo: remove player
                     end
                 end
-            catch
+            catch e
+                println(e)
             end
         end
-    elseif s == :spawnOtherPlayer
+    elseif s == :spawnAllCoins
         function ()
+            for (key, value) in this.coinSpaces
+                x, y = parse.(Int, split(key, "x"))
+                sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),"..",".."), "coin.png", false)
+                sprite.injectRenderer(MAIN.renderer)
+                newCoin = JulGame.EntityModule.Entity("coin", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(x-5,y-3)), [sprite])
+    
+                push!(MAIN.scene.entities, newCoin)
+            end
+        end
+    elseif s == :spawnAllPlayers
+        function ()
+            try
+                count = 1
+                println(this.gameState["players"])
+                for player in this.gameState["players"]
+                    println("player $(count)")
+                    count += 1
+                    playerId = player.first
+                    
+                    if playerId == this.user["localId"] # local player
+                        println("spawning local player")
+                        this.spawnLocalPlayer(player)
+                    else # add new other player
+                        println("spawning other player")
+                        this.otherPlayers[playerId] = [player.second, this.spawnOtherPlayer(player)]
+                    end
+                end
+            catch e
+                println(e)
+
+            end
+        end
+    elseif s == :spawnLocalPlayer
+        function (player)
             sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),"..",".."), "characters.png", false)
             sprite.injectRenderer(MAIN.renderer)
             sprite.crop = JulGame.Math.Vector4(16,0,16,16)
-            newPlayer = JulGame.EntityModule.Entity("other player", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(-2,7)), [sprite])
+            newPlayer = JulGame.EntityModule.Entity("$(MAIN.globals[1])", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["x"]-5, player.second["y"]-3)), [sprite])
+            playerMovement = PlayerMovement()
+            newPlayer.scripts = [playerMovement]
+            playerMovement.setParent(newPlayer)
+            playerMovement.initialize()
+
+            push!(MAIN.scene.entities, newPlayer)
+            return newPlayer
+        end
+    elseif s == :spawnOtherPlayer
+        function (player)
+            sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),"..",".."), "characters.png", false)
+            sprite.injectRenderer(MAIN.renderer)
+            sprite.crop = JulGame.Math.Vector4(16,0,16,16)
+            newPlayer = JulGame.EntityModule.Entity("other player", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["x"]-5, player.second["y"]-3)), [sprite])
 
             push!(MAIN.scene.entities, newPlayer)
             return newPlayer
