@@ -196,7 +196,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
                     elseif haskey(this.otherPlayers, playerId) # update existing other player
                         this.otherPlayers[playerId][1] = player.second
                         otherPlayerCurrentPosition = this.otherPlayers[playerId][2].getTransform().position
-                        otherPlayerCurrentPositionInGrid = "$(Int(otherPlayerCurrentPosition.x) + 5)x$(Int(otherPlayerCurrentPosition.y) + 3)"
+                        otherPlayerCurrentPositionInGrid = "$(otherPlayerCurrentPosition.x + 5)x$(otherPlayerCurrentPosition.y + 3)"
                         # Only update position if it has changed 
                         if (otherPlayerCurrentPosition.x + 5) != player.second["x"] || (otherPlayerCurrentPosition.y + 3) != player.second["y"]
                             if haskey(this.blockedSpaces, otherPlayerCurrentPositionInGrid)
@@ -219,10 +219,16 @@ function Base.getproperty(this::GameManager, s::Symbol)
             for (key, value) in this.coinSpaces
                 x, y = parse.(Int, split(key, "x"))
                 sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),"..",".."), "coin.png", false)
+                sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),"..",".."), "coin-shadow.png", false)
+
                 sprite.injectRenderer(MAIN.renderer)
+                sprite1.injectRenderer(MAIN.renderer)
                 newCoin = JulGame.EntityModule.Entity("coin", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(x-5,y-3)), [sprite])
-    
+                newCoinShadow = JulGame.EntityModule.Entity("coin", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(x-5,y-3)), [sprite1])
+                newCoin.addScript(Coin(newCoinShadow))
+
                 push!(MAIN.scene.entities, newCoin)
+                push!(MAIN.scene.entities, newCoinShadow)
             end
         end
     elseif s == :spawnAllPlayers
