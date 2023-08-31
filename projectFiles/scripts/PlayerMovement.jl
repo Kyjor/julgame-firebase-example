@@ -6,24 +6,29 @@ mutable struct PlayerMovement
     #animator
     blockedSpaces
     canMove
+    elapsedTime
     gameManager
     input
     isFacingRight
     parent
     positionBeforeMoving
+    shadow
+    startingY
     targetPosition
     timeBetweenMoves
     timer
     moveTimer
 
-    function PlayerMovement()
+    function PlayerMovement(shadow)
         this = new()
 
         this.canMove = false
+        this.elapsedTime = 0.0
         this.input = C_NULL
         this.isFacingRight = true
         this.parent = C_NULL
         this.gameManager = MAIN.scene.entities[1].scripts[1]
+        this.shadow = shadow
         this.timeBetweenMoves = 0.2
         this.timer = 0.0
         this.moveTimer = 0.0
@@ -51,6 +56,8 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
     if s == :initialize
         function()
             this.targetPosition = JulGame.Math.Vector2f(this.parent.getTransform().position.x, this.parent.getTransform().position.y)
+            this.startingY = this.parent.getSprite().offset.y
+
         end
     elseif s == :update
         function(deltaTime)
@@ -94,7 +101,10 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
             if this.targetPosition.x != this.parent.getTransform().position.x || this.targetPosition.y != this.parent.getTransform().position.y
                 this.moveTimer += deltaTime
                 this.movePlayerSmoothly()
-            end  
+            end 
+            
+            this.bob()
+            this.elapsedTime += deltaTime
         end
     elseif s == :movePlayerSmoothly
         function()
@@ -117,6 +127,19 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
             end
 
             return false
+        end
+    elseif s == :bob
+        function()
+            # Define bobbing parameters
+            bobHeight = -0.20  # The maximum height the item will bob
+            bobSpeed = 2.0   # The speed at which the item bobs up and down
+            minBobHeight = -0.10
+
+            # Calculate a sine wave for bobbing motion
+            bobOffset = minBobHeight + bobHeight * (1.0 - cos(bobSpeed * this.elapsedTime)) / 2.0
+        
+            # Update the item's Y-coordinate
+            this.parent.getSprite().offset = JulGame.Math.Vector2f(this.parent.getSprite().offset.x, this.startingY + bobOffset)
         end
     elseif s == :setParent
         function(parent)
