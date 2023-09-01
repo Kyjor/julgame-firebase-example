@@ -50,7 +50,7 @@ end
 function Base.getproperty(this::GameManager, s::Symbol)
     if s == :initialize
         function()
-            MAIN.scene.camera.target = JulGame.TransformModule.Transform(JulGame.Math.Vector2f(-3,2))
+            MAIN.scene.camera.target = JulGame.TransformModule.Transform(JulGame.Math.Vector2f(2.5,5))
             MAIN.cameraBackgroundColor = [0, 128, 128]
             name = MAIN.globals[1]
             color = MAIN.globals[2]
@@ -197,12 +197,12 @@ function Base.getproperty(this::GameManager, s::Symbol)
                     elseif haskey(this.otherPlayers, playerId) # update existing other player
                         this.otherPlayers[playerId][1] = player.second
                         otherPlayerCurrentTargetPosition = this.otherPlayers[playerId][2].scripts[1].targetPosition
-                        #otherPlayerCurrentPositionInGrid = "$(otherPlayerCurrentPosition.x + 5)x$(otherPlayerCurrentPosition.y + 3)"
+                        #otherPlayerCurrentPositionInGrid = "$(otherPlayerCurrentPosition.x)x$(otherPlayerCurrentPosition.y)"
                         # Only update position if it has changed 
-                        this.blockedSpaces["$(Int(player.second["x"]) + 5)x$(Int(player.second["y"]) + 3)"] = true
-                        if (otherPlayerCurrentTargetPosition.x + 5) != player.second["x"] || (otherPlayerCurrentTargetPosition.y + 3) != player.second["y"]
+                        this.blockedSpaces["$(Int(player.second["x"]))x$(Int(player.second["y"]))"] = true
+                        if (otherPlayerCurrentTargetPosition.x) != player.second["x"] || (otherPlayerCurrentTargetPosition.y) != player.second["y"]
                             otherPlayerNextPosition = JulGame.Math.Vector2f(player.second["x"], player.second["y"])
-                            this.blockedSpaces["$(Int(otherPlayerNextPosition.x) + 5)x$(Int(otherPlayerNextPosition.y) + 3)"] = true
+                            this.blockedSpaces["$(Int(otherPlayerNextPosition.x))x$(Int(otherPlayerNextPosition.y))"] = true
                             this.otherPlayers[playerId][2].scripts[1].setNewPosition(otherPlayerNextPosition.x, otherPlayerNextPosition.y)
                         end
                     # todo: remove player
@@ -222,8 +222,8 @@ function Base.getproperty(this::GameManager, s::Symbol)
 
                 sprite.injectRenderer(MAIN.renderer)
                 sprite1.injectRenderer(MAIN.renderer)
-                newCoin = JulGame.EntityModule.Entity("coin", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(x-5,y-3)), [sprite])
-                newCoinShadow = JulGame.EntityModule.Entity("coin", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(x-5,y-3)), [sprite1])
+                newCoin = JulGame.EntityModule.Entity("coin", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(x,y)), [sprite])
+                newCoinShadow = JulGame.EntityModule.Entity("coin", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(x,y)), [sprite1])
                 newCoin.addScript(Coin(newCoinShadow))
 
                 push!(MAIN.scene.entities, newCoin)
@@ -263,8 +263,8 @@ function Base.getproperty(this::GameManager, s::Symbol)
             sprite.injectRenderer(MAIN.renderer)
             sprite1.injectRenderer(MAIN.renderer)
             sprite.crop = JulGame.Math.Vector4(16,colorIndex*16,16,16)
-            newPlayer = JulGame.EntityModule.Entity("$(MAIN.globals[1])", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["x"]-5, player.second["y"]-3)), [sprite])
-            newPlayerShadow = JulGame.EntityModule.Entity("$(MAIN.globals[1]) shadow", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["x"]-5, player.second["y"]-3)), [sprite])
+            newPlayer = JulGame.EntityModule.Entity("$(MAIN.globals[1])", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["x"], player.second["y"])), [sprite])
+            newPlayerShadow = JulGame.EntityModule.Entity("$(MAIN.globals[1]) shadow", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["x"], player.second["y"])), [sprite])
             newPlayer.addScript(PlayerMovement(newPlayerShadow))
 
             push!(MAIN.scene.entities, newPlayer)
@@ -280,8 +280,8 @@ function Base.getproperty(this::GameManager, s::Symbol)
             sprite.injectRenderer(MAIN.renderer)
             sprite1.injectRenderer(MAIN.renderer)
             sprite.crop = JulGame.Math.Vector4(16,colorIndex*16,16,16)
-            newPlayer = JulGame.EntityModule.Entity("other player", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["x"]-5, player.second["y"]-3)), [sprite])
-            newPlayerShadow = JulGame.EntityModule.Entity("other player shadow", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["x"]-5, player.second["y"]-3)), [sprite1])
+            newPlayer = JulGame.EntityModule.Entity("other player", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["x"], player.second["y"]-3)), [sprite])
+            newPlayerShadow = JulGame.EntityModule.Entity("other player shadow", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["x"], player.second["y"]-3)), [sprite1])
             newPlayer.addScript(OtherPlayerMovement(newPlayerShadow))
 
             push!(MAIN.scene.entities, newPlayerShadow)

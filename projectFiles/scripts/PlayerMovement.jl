@@ -119,7 +119,7 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
     elseif s == :canPlayerMoveHere
         function(nextPosition)
             println(this.gameManager.blockedSpaces)
-            if nextPosition.x > -5 && nextPosition.x < 9 && nextPosition.y > 0 && nextPosition.y < 9 && !(haskey(this.blockedSpaces, "$(Int(nextPosition.x) + 5)x$(Int(nextPosition.y) + 3)")) && !(haskey(this.gameManager.blockedSpaces, "$(Int(nextPosition.x) + 5)x$(Int(nextPosition.y) + 3)"))
+            if nextPosition.x > 0 && nextPosition.x < 14 && nextPosition.y > 3 && nextPosition.y < 12 && !(haskey(this.blockedSpaces, "$(Int(nextPosition.x))x$(Int(nextPosition.y))")) && !(haskey(this.gameManager.blockedSpaces, "$(Int(nextPosition.x))x$(Int(nextPosition.y))"))
                 this.canMove = false
                 this.timer = 0.0
                 this.gameManager.updatePos(nextPosition)
