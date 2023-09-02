@@ -101,6 +101,7 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
             if this.targetPosition.x != this.parent.getTransform().position.x || this.targetPosition.y != this.parent.getTransform().position.y
                 this.moveTimer += deltaTime
                 this.movePlayerSmoothly()
+                println("moving player smoothly")
             end 
             
             this.bob()
@@ -109,7 +110,9 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
     elseif s == :movePlayerSmoothly
         function()
             this.canMove = false
-            this.parent.getTransform().position = JulGame.Math.Vector2f(JulGame.Math.SmoothLerp(this.positionBeforeMoving.x, this.targetPosition.x, this.moveTimer/this.timeBetweenMoves), JulGame.Math.SmoothLerp(this.positionBeforeMoving.y, this.targetPosition.y, this.moveTimer/this.timeBetweenMoves))
+            nextPos = JulGame.Math.Vector2f(JulGame.Math.SmoothLerp(this.positionBeforeMoving.x, this.targetPosition.x, this.moveTimer/this.timeBetweenMoves), JulGame.Math.SmoothLerp(this.positionBeforeMoving.y, this.targetPosition.y, this.moveTimer/this.timeBetweenMoves))
+            this.parent.getTransform().position = nextPos
+            this.shadow.getTransform().position = nextPos
             if (this.moveTimer/this.timeBetweenMoves) >= 1
                 this.moveTimer = 0.0
                 this.parent.getTransform().position = this.targetPosition
