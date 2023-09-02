@@ -3,6 +3,7 @@ using Firebase
 
 mutable struct GameManager
     blockedSpaces
+    coinMap
     coinSpaces
     currentGamePhase
     gameId
@@ -24,6 +25,7 @@ mutable struct GameManager
         this = new()
 
         this.gameState = C_NULL
+        this.coinMap = Dict()
         this.roomState = C_NULL
         this.tickRate = 12
         this.tickTimer = 0.0
@@ -66,9 +68,6 @@ function Base.getproperty(this::GameManager, s::Symbol)
 
             # IN LOBBY
             # We will be readying up and waiting for a game id to move on to next phase
-            if MAIN.input.getButtonPressed("L")
-                println(Firebase.realdb_getRealTime("/games/$(this.gameId)", this.user["idToken"]))
-            end
             if this.currentGamePhase == this.gamePhases[1]
                 if MAIN.input.getButtonPressed("R")
                     this.readyUp()
@@ -103,13 +102,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
                     return
                 end
 
-                # println(this.gameState["gameState"]["coins"] != C_NULL)
-                # println(this.gameState["gameState"]["coins"] !== nothing)
-                # println(this.gameState["players"] != C_NULL) 
-                # println(this.gameState["players"] !== nothing)
-                #println(this.gameState)
                 if haskey(this.gameState, "gameState") && haskey(this.gameState["gameState"], "coins") && haskey(this.gameState, "players")
-                    #println(this.gameState)
                     sleep(0.001)
                     this.spawnAllCoins()
                     this.spawnAllPlayers()
@@ -139,6 +132,8 @@ function Base.getproperty(this::GameManager, s::Symbol)
                     this.task = this.get()
                     this.tickTimer = 0.0
                 end
+
+                this.checkAndRemoveCoins()
             end
 
             # # GAME IS OVER
@@ -226,16 +221,43 @@ function Base.getproperty(this::GameManager, s::Symbol)
                 newCoin = JulGame.EntityModule.Entity("coin", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(x,y)), [sprite])
                 newCoinShadow = JulGame.EntityModule.Entity("coin", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(x,y)), [sprite1])
                 newCoin.addScript(Coin(newCoinShadow))
-
+                
                 push!(MAIN.scene.entities, newCoin)
                 push!(MAIN.scene.entities, newCoinShadow)
+                
+                this.coinMap[key] = [newCoin, newCoinShadow]
             end
+        end
+    elseif s == :checkAndRemoveCoins
+        function ()
+
+            if haskey(this.gameState["gameState"], "coins") && length(this.gameState["gameState"]["coins"]) != length(this.coinMap)
+                for (key, value) in this.coinMap
+                    if haskey(this.gameState["gameState"]["coins"], key)
+                        continue
+                    end
+
+                    coinIndex = findfirst(x -> x == this.coinMap[key][1], MAIN.scene.entities)
+                    deleteat!(MAIN.scene.entities, coinIndex)
+                    coinShadowIndex = findfirst(x -> x == this.coinMap[key][2], MAIN.scene.entities)
+                    deleteat!(MAIN.scene.entities, coinShadowIndex)
+                    delete!(this.coinMap, key)
+                end
+            elseif !haskey(this.gameState["gameState"], "coins") && length(this.coinMap) == 1
+                for (key, value) in this.coinMap
+                    coinIndex = findfirst(x -> x == this.coinMap[key][1], MAIN.scene.entities)
+                    deleteat!(MAIN.scene.entities, coinIndex)
+                    coinShadowIndex = findfirst(x -> x == this.coinMap[key][2], MAIN.scene.entities)
+                    deleteat!(MAIN.scene.entities, coinShadowIndex)
+                    delete!(this.coinMap, key)
+                end
+            end
+
         end
     elseif s == :spawnAllPlayers
         function ()
             try
                 count = 1
-                println(this.gameState["players"])
                 for player in this.gameState["players"]
                     println("player $(count)")
                     count += 1
