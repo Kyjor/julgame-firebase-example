@@ -23,6 +23,15 @@
                         "x": 1,
                         "y": 1
                     }
+                },
+                {
+                    "channel": -1,
+                    "volume": 100,
+                    "sound": {
+                    },
+                    "isMusic": true,
+                    "type": "SoundSource",
+                    "path": "bgm_menu.mp3"
                 }
             ]
         },

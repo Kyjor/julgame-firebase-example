@@ -13,6 +13,7 @@ mutable struct PlayerMovement
     parent
     positionBeforeMoving
     shadow
+    soundBank
     startingY
     targetPosition
     timeBetweenMoves
@@ -47,6 +48,11 @@ mutable struct PlayerMovement
             "7x9"=> true,
             "8x9"=> true,
             "9x9"=> true)
+
+        this.soundBank = Dict(
+            "move"=> SoundSource(joinpath(pwd(),"..",".."), "player_move.wav", 1, 60),
+            "can_not_move"=> SoundSource(joinpath(pwd(),"..",".."), "player_can_not_move.wav", 1, 100),
+        )
         
         return this
     end
@@ -81,6 +87,8 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
                         if this.canPlayerMoveHere(new_position)
                             this.positionBeforeMoving = currentPosition
                             this.targetPosition = new_position
+                        else
+                            this.soundBank["can_not_move"].toggleSound()
                         end
                     end
                     
@@ -101,7 +109,6 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
             if this.targetPosition.x != this.parent.getTransform().position.x || this.targetPosition.y != this.parent.getTransform().position.y
                 this.moveTimer += deltaTime
                 this.movePlayerSmoothly()
-                println("moving player smoothly")
             end 
             
             this.bob()
@@ -109,6 +116,10 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
         end
     elseif s == :movePlayerSmoothly
         function()
+            if this.canMove
+                this.soundBank["move"].toggleSound()
+            end
+
             this.canMove = false
             nextPos = JulGame.Math.Vector2f(JulGame.Math.SmoothLerp(this.positionBeforeMoving.x, this.targetPosition.x, this.moveTimer/this.timeBetweenMoves), JulGame.Math.SmoothLerp(this.positionBeforeMoving.y, this.targetPosition.y, this.moveTimer/this.timeBetweenMoves))
             this.parent.getTransform().position = nextPos

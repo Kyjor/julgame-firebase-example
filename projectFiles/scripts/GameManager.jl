@@ -16,6 +16,7 @@ mutable struct GameManager
     playerId
     results
     roomState
+    soundBank
     task
     tickRate
     tickTimer
@@ -44,6 +45,11 @@ mutable struct GameManager
         this.blockedSpaces = Dict()
         this.coinSpaces = C_NULL
         this.isLocalPlayerSpawned = false
+        this.soundBank = Dict(
+            "pickup_coin0"=> SoundSource(joinpath(pwd(),"..",".."), "pickup_coin0.wav", 2, 100),
+            "pickup_coin1"=> SoundSource(joinpath(pwd(),"..",".."), "pickup_coin1.wav", 2, 100),
+            "pickup_coin2"=> SoundSource(joinpath(pwd(),"..",".."), "pickup_coin2.wav", 2, 100)
+        )
         
         return this
     end
@@ -61,6 +67,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
             this.user = Firebase.firebase_signinanon()
             this.localPlayerState = Dict("name" => name, "color" => color, "position" => Dict("x" => 0, "y" => 0,), "coins" => 0, "lastUpdate" => 0, "isReady" => false, "gameId" => this.gameId)
             this.playerId = Firebase.realdb_postRealTime("/lobby/$(this.user["localId"])", this.localPlayerState, this.user["idToken"])["name"]
+            this.parent.getSoundSource().toggleSound(-1)
         end
     elseif s == :update
         function(deltaTime)
@@ -155,8 +162,16 @@ function Base.getproperty(this::GameManager, s::Symbol)
             try
                 @async begin
                     game = Firebase.realdb_getRealTime("/games/$(this.gameId)", this.user["idToken"])
-                    this.roomState = game["players"]
+                    oldGameState = deepcopy(this.gameState)
                     this.gameState = game
+                    if oldGameState != C_NULL && oldGameState !== nothing && haskey(oldGameState, "gameState") && haskey(oldGameState["gameState"], "coins") && haskey(oldGameState, "players")
+                        println("current coins: $(oldGameState["players"][this.user["localId"]]["coins"]), Next coins: $(game["players"][this.user["localId"]]["coins"])")
+                        if oldGameState["players"][this.user["localId"]]["coins"] < game["players"][this.user["localId"]]["coins"]
+                            println("toggleSound")
+                            this.soundBank["pickup_coin$((game["players"][this.user["localId"]]["coins"]-1)%3)"].toggleSound()
+                        end
+                    end
+                    this.roomState = game["players"]
                     this.coinSpaces = game["gameState"]["coins"]
                 end
                     sleep(0.001)
