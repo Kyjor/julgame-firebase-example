@@ -1,7 +1,9 @@
 using JulGame.MainLoop 
-using Firebase
+
+include("firebase.jl")
 
 mutable struct GameManager
+    baseUrl
     blockedSpaces
     coinMap
     coinSpaces
@@ -62,12 +64,13 @@ function Base.getproperty(this::GameManager, s::Symbol)
             MAIN.cameraBackgroundColor = [0, 128, 128]
             name = MAIN.globals[1]
             color = MAIN.globals[2]
-            Firebase.realdb_init("https://multiplayer-demo-2f287-default-rtdb.firebaseio.com")
-            Firebase.set_webapikey("AIzaSyCxuzQNfmIMijosSYn8UWfQGOrQYARJ4iE")
-            this.user = Firebase.firebase_signinanon()
-            this.localPlayerState = Dict("name" => name, "color" => color, "position" => Dict("x" => 0, "y" => 0,), "coins" => 0, "lastUpdate" => 0, "isReady" => false, "gameId" => this.gameId)
-            this.playerId = Firebase.realdb_postRealTime("/lobby/$(this.user["localId"])", this.localPlayerState, this.user["idToken"])["name"]
             this.parent.getSoundSource().toggleSound(-1)
+
+            this.baseUrl = "https://multiplayer-demo-2f287-default-rtdb.firebaseio.com"
+            this.user = firebase_signinanon("AIzaSyCxuzQNfmIMijosSYn8UWfQGOrQYARJ4iE")
+
+            this.localPlayerState = Dict("name" => name, "color" => color, "position" => Dict("x" => 0, "y" => 0,), "coins" => 0, "lastUpdate" => 0, "isReady" => false, "gameId" => this.gameId)
+            this.playerId = realdb_postRealTime(this.baseUrl, "/lobby/$(this.user["localId"])", this.localPlayerState, this.user["idToken"])["name"]
         end
     elseif s == :update
         function(deltaTime)
@@ -83,7 +86,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
                     playerData = nothing
                     try
                         @async begin
-                            playerData = Firebase.realdb_getRealTime("/lobby/$(this.user["localId"])/$(this.playerId)", this.user["idToken"])
+                            playerData = realdb_getRealTime(this.baseUrl, "/lobby/$(this.user["localId"])/$(this.playerId)", this.user["idToken"])
                             this.gameId = playerData["gameId"]
                         end
                             sleep(0.001)
@@ -161,7 +164,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
         function ()
             try
                 @async begin
-                    game = Firebase.realdb_getRealTime("/games/$(this.gameId)", this.user["idToken"])
+                    game = realdb_getRealTime(this.baseUrl, "/games/$(this.gameId)", this.user["idToken"])
                     oldGameState = deepcopy(this.gameState)
                     this.gameState = game
                     if oldGameState != C_NULL && oldGameState !== nothing && haskey(oldGameState, "gameState") && haskey(oldGameState["gameState"], "coins") && haskey(oldGameState, "players")
@@ -185,7 +188,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
             newPos["x"] = position.x
             newPos["y"] = position.y
 
-            @async Firebase.realdb_putRealTime("/games/$(this.gameId)/players/$(this.user["localId"])/position", newPos)
+            @async realdb_putRealTime(this.baseUrl, "/games/$(this.gameId)/players/$(this.user["localId"])/position", newPos)
         end
     elseif s == :readyUp
         function ()
@@ -195,7 +198,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
             println("ready")
 
             this.localPlayerState["isReady"] = true
-            @async Firebase.realdb_putRealTime("/lobby/$(this.user["localId"])/$(this.playerId)", this.localPlayerState, this.user["idToken"])
+            @async realdb_putRealTime(this.baseUrl, "/lobby/$(this.user["localId"])/$(this.playerId)", this.localPlayerState, this.user["idToken"])
         end
     elseif s == :processRoomState
         function ()
@@ -330,7 +333,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
     elseif s == :onShutDown
         function ()
             println("shut down")
-            Firebase.realdb_deleteRealTime("/lobby/$(this.user["localId"])", this.user["idToken"])
+            realdb_deleteRealTime("/lobby/$(this.user["localId"])", this.user["idToken"])
         end
     else
         try

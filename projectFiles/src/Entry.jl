@@ -3,6 +3,7 @@
 using JulGame.Math
 using JulGame.SceneBuilderModule
 
+#function run()
 println("Enter your user name")
 playerName = ""
 while true
@@ -44,7 +45,6 @@ chosenColor = colors[colorChoice]
 
 println("Hello, $(playerName)! You chose the color $chosenColor.")
 
-#function run()
     dir = @__DIR__
     #dir = pwd()
     scene = Scene(joinpath(dir, "..", ".."), "scene.json")
