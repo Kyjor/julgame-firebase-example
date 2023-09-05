@@ -1,6 +1,5 @@
-using HTTP, JSON
+function firebase_signinanon(HTTP, JSON, WEB_API_KEY, returnSecureToken::Bool=true)
 
-function firebase_signinanon(WEB_API_KEY, returnSecureToken::Bool=true)
     http_response = HTTP.post("https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$WEB_API_KEY",
     header="""{Content-Type: application/json}""",
     body="""{"returnSecureToken":"$returnSecureToken"}""")
@@ -8,7 +7,7 @@ function firebase_signinanon(WEB_API_KEY, returnSecureToken::Bool=true)
     return JSON.parse(response_string)
   end
 
-function realdb_postRealTime(baseUrl, url, body = Dict("name" => "real_db_test"), auth = "null")
+function realdb_postRealTime(HTTP, JSON, baseUrl, url, body = Dict("name" => "real_db_test"), auth = "null")
     final_url = "$baseUrl$url.json?auth=$auth"
     #println("FINAL URL:", final_url)
     body = JSON.json(body)
@@ -22,7 +21,7 @@ function realdb_postRealTime(baseUrl, url, body = Dict("name" => "real_db_test")
     return JSON.parse(String(res.body))
 end
 
-function realdb_getRealTime(baseUrl, url, auth = "null")
+function realdb_getRealTime(HTTP, JSON, baseUrl, url, auth = "null")
     final_url = "$baseUrl$url.json?auth=$auth"
     #print("FINAL URL:", final_url)
     res = HTTP.get(final_url)
@@ -34,7 +33,7 @@ function realdb_getRealTime(baseUrl, url, auth = "null")
     return JSON.parse(String(res.body))
 end
 
-function realdb_putRealTime(baseUrl, url, body = Dict("name" => "real_db_test"), auth = "null")
+function realdb_putRealTime(HTTP, JSON, baseUrl, url, body = Dict("name" => "real_db_test"), auth = "null")
     final_url = "$baseUrl$url.json?auth=$auth"
     #println("FINAL URL:", final_url)
     body = JSON.json(body)
@@ -48,7 +47,7 @@ function realdb_putRealTime(baseUrl, url, body = Dict("name" => "real_db_test"),
     JSON.parse(String(res.body))
 end
 
-function realdb_deleteRealTime(baseUrl, url, auth = "null")
+function realdb_deleteRealTime(HTTP, JSON, baseUrl, url, auth = "null")
     final_url = "$baseUrl$url.json?auth=$auth"
     #println("FINAL URL:", final_url)
     res = HTTP.delete(final_url, "")

@@ -50,8 +50,8 @@ mutable struct PlayerMovement
             "9x9"=> true)
 
         this.soundBank = Dict(
-            "move"=> SoundSource(joinpath(pwd(),"..",".."), "player_move.wav", 1, 60),
-            "can_not_move"=> SoundSource(joinpath(pwd(),"..",".."), "player_can_not_move.wav", 1, 100),
+            "move"=> SoundSource(joinpath(pwd(),".."), "player_move.wav", 1, 50),
+            "can_not_move"=> SoundSource(joinpath(pwd(),".."), "player_can_not_move.wav", 1, 50),
         )
         
         return this

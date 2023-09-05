@@ -1,5 +1,5 @@
-name = "Entry"
-uuid = "c86e6512-13ad-4cb8-a305-d9a62f3cd09b"
+name = "CoinGrabber"
+uuid = "8ca9f114-4b7e-11ee-be56-0242ac120002"
 authors = ["Kyjor <kyjordev@gmail.com>"]
 version = "0.0.1"
 

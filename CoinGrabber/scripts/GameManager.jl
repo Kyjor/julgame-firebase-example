@@ -8,6 +8,7 @@ mutable struct GameManager
     coinMap
     coinSpaces
     currentGamePhase
+    deps
     gameId
     gamePhases
     gameState
@@ -48,9 +49,9 @@ mutable struct GameManager
         this.coinSpaces = C_NULL
         this.isLocalPlayerSpawned = false
         this.soundBank = Dict(
-            "pickup_coin0"=> SoundSource(joinpath(pwd(),"..",".."), "pickup_coin0.wav", 2, 100),
-            "pickup_coin1"=> SoundSource(joinpath(pwd(),"..",".."), "pickup_coin1.wav", 2, 100),
-            "pickup_coin2"=> SoundSource(joinpath(pwd(),"..",".."), "pickup_coin2.wav", 2, 100)
+            "pickup_coin0"=> SoundSource(joinpath(pwd(),".."), "pickup_coin0.wav", 2, 50),
+            "pickup_coin1"=> SoundSource(joinpath(pwd(),".."), "pickup_coin1.wav", 2, 50),
+            "pickup_coin2"=> SoundSource(joinpath(pwd(),".."), "pickup_coin2.wav", 2, 50)
         )
         
         return this
@@ -64,13 +65,14 @@ function Base.getproperty(this::GameManager, s::Symbol)
             MAIN.cameraBackgroundColor = [0, 128, 128]
             name = MAIN.globals[1]
             color = MAIN.globals[2]
+            this.deps = MAIN.globals[3]
             this.parent.getSoundSource().toggleSound(-1)
 
             this.baseUrl = "https://multiplayer-demo-2f287-default-rtdb.firebaseio.com"
-            this.user = firebase_signinanon("AIzaSyCxuzQNfmIMijosSYn8UWfQGOrQYARJ4iE")
+            this.user = firebase_signinanon(this.deps[1], this.deps[2], "AIzaSyCxuzQNfmIMijosSYn8UWfQGOrQYARJ4iE")
 
             this.localPlayerState = Dict("name" => name, "color" => color, "position" => Dict("x" => 0, "y" => 0,), "coins" => 0, "lastUpdate" => 0, "isReady" => false, "gameId" => this.gameId)
-            this.playerId = realdb_postRealTime(this.baseUrl, "/lobby/$(this.user["localId"])", this.localPlayerState, this.user["idToken"])["name"]
+            this.playerId = realdb_postRealTime(this.deps[1], this.deps[2], this.baseUrl, "/lobby/$(this.user["localId"])", this.localPlayerState, this.user["idToken"])["name"]
         end
     elseif s == :update
         function(deltaTime)
@@ -86,7 +88,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
                     playerData = nothing
                     try
                         @async begin
-                            playerData = realdb_getRealTime(this.baseUrl, "/lobby/$(this.user["localId"])/$(this.playerId)", this.user["idToken"])
+                            playerData = realdb_getRealTime(this.deps[1], this.deps[2], this.baseUrl, "/lobby/$(this.user["localId"])/$(this.playerId)", this.user["idToken"])
                             this.gameId = playerData["gameId"]
                         end
                             sleep(0.001)
@@ -164,7 +166,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
         function ()
             try
                 @async begin
-                    game = realdb_getRealTime(this.baseUrl, "/games/$(this.gameId)", this.user["idToken"])
+                    game = realdb_getRealTime(this.deps[1], this.deps[2], this.baseUrl, "/games/$(this.gameId)", this.user["idToken"])
                     oldGameState = deepcopy(this.gameState)
                     this.gameState = game
                     if oldGameState != C_NULL && oldGameState !== nothing && haskey(oldGameState, "gameState") && haskey(oldGameState["gameState"], "coins") && haskey(oldGameState, "players")
@@ -188,7 +190,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
             newPos["x"] = position.x
             newPos["y"] = position.y
 
-            @async realdb_putRealTime(this.baseUrl, "/games/$(this.gameId)/players/$(this.user["localId"])/position", newPos)
+            @async realdb_putRealTime(this.deps[1], this.deps[2], this.baseUrl, "/games/$(this.gameId)/players/$(this.user["localId"])/position", newPos)
         end
     elseif s == :readyUp
         function ()
@@ -198,7 +200,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
             println("ready")
 
             this.localPlayerState["isReady"] = true
-            @async realdb_putRealTime(this.baseUrl, "/lobby/$(this.user["localId"])/$(this.playerId)", this.localPlayerState, this.user["idToken"])
+            @async realdb_putRealTime(this.deps[1], this.deps[2], this.baseUrl, "/lobby/$(this.user["localId"])/$(this.playerId)", this.localPlayerState, this.user["idToken"])
         end
     elseif s == :processRoomState
         function ()
@@ -231,8 +233,8 @@ function Base.getproperty(this::GameManager, s::Symbol)
         function ()
             for (key, value) in this.coinSpaces
                 x, y = parse.(Int, split(key, "x"))
-                sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),"..",".."), "coin.png", false)
-                sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),"..",".."), "coin-shadow.png", false)
+                sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "coin.png", false)
+                sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "coin-shadow.png", false)
 
                 sprite.injectRenderer(MAIN.renderer)
                 sprite1.injectRenderer(MAIN.renderer)
@@ -299,8 +301,8 @@ function Base.getproperty(this::GameManager, s::Symbol)
             colors = ["blue", "pink", "red", "yellow", "green", "purple"]
             colorIndex = findfirst(x -> x == player.second["color"], colors) - 1
 
-            sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),"..",".."), "characters.png", false)
-            sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),"..",".."), "shadow.png", false)
+            sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "characters.png", false)
+            sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "shadow.png", false)
             sprite.injectRenderer(MAIN.renderer)
             sprite1.injectRenderer(MAIN.renderer)
             sprite.crop = JulGame.Math.Vector4(16,colorIndex*16,16,16)
@@ -317,8 +319,8 @@ function Base.getproperty(this::GameManager, s::Symbol)
             colors = ["blue", "pink", "red", "yellow", "green", "purple"]
             colorIndex = findfirst(x -> x == player.second["color"], colors) - 1
 
-            sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),"..",".."), "characters.png", false)
-            sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),"..",".."), "shadow.png", false)
+            sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "characters.png", false)
+            sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "shadow.png", false)
             sprite.injectRenderer(MAIN.renderer)
             sprite1.injectRenderer(MAIN.renderer)
             sprite.crop = JulGame.Math.Vector4(16,colorIndex*16,16,16)
@@ -333,7 +335,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
     elseif s == :onShutDown
         function ()
             println("shut down")
-            realdb_deleteRealTime("/lobby/$(this.user["localId"])", this.user["idToken"])
+            realdb_deleteRealTime(this.deps[1], this.deps[2], "/lobby/$(this.user["localId"])", this.user["idToken"])
         end
     else
         try
