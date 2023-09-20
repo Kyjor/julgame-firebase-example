@@ -12,6 +12,8 @@ mutable struct GameManager
     gameId
     gamePhases
     gameState
+    heartbeatCounter
+    heartbeatTimer
     isLocalPlayerSpawned
     localPlayerState
     otherPlayers
@@ -23,6 +25,7 @@ mutable struct GameManager
     task
     tickRate
     tickTimer
+    timeBetweenHeartbeats
     user 
 
     function GameManager()
@@ -53,6 +56,9 @@ mutable struct GameManager
             "pickup_coin1"=> SoundSource(joinpath(pwd(),".."), "pickup_coin1.wav", 2, 50),
             "pickup_coin2"=> SoundSource(joinpath(pwd(),".."), "pickup_coin2.wav", 2, 50)
         )
+        this.heartbeatCounter = 0
+        this.heartbeatTimer = 0.0
+        this.timeBetweenHeartbeats = 10.0 
         
         return this
     end
@@ -66,17 +72,18 @@ function Base.getproperty(this::GameManager, s::Symbol)
             name = MAIN.globals[1]
             color = MAIN.globals[2]
             this.deps = MAIN.globals[3]
-            this.parent.getSoundSource().toggleSound(-1)
+            #this.parent.getSoundSource().toggleSound(-1)
 
             this.baseUrl = "https://multiplayer-demo-2f287-default-rtdb.firebaseio.com"
             this.user = firebase_signinanon(this.deps[1], this.deps[2], "AIzaSyCxuzQNfmIMijosSYn8UWfQGOrQYARJ4iE")
 
-            this.localPlayerState = Dict("name" => name, "color" => color, "position" => Dict("x" => 0, "y" => 0,), "coins" => 0, "lastUpdate" => 0, "isReady" => false, "gameId" => this.gameId)
+            this.localPlayerState = Dict("name" => name, "color" => color, "position" => Dict("x" => 0, "y" => 0,), "coins" => 0, "lastUpdate" => 0, "isReady" => false, "gameId" => this.gameId, "heartbeat" => 0)
             this.playerId = realdb_postRealTime(this.deps[1], this.deps[2], this.baseUrl, "/lobby/$(this.user["localId"])", this.localPlayerState, this.user["idToken"])["name"]
         end
     elseif s == :update
         function(deltaTime)
             this.tickTimer += deltaTime # RATE LIMIT FOR ALL GET REQUESTS
+            this.heartbeatTimer += deltaTime
 
             # IN LOBBY
             # We will be readying up and waiting for a game id to move on to next phase
@@ -157,6 +164,10 @@ function Base.getproperty(this::GameManager, s::Symbol)
             # if this.currentGamePhase == this.gamePhases[3] && if this.currentGamePhase == this.gamePhases[4]
 
             # end
+            if this.heartbeatTimer > this.timeBetweenHeartbeats
+                this.sendHeartbeat()
+                this.heartbeatTimer = 0.0
+            end
         end
     elseif s == :setParent 
         function(parent)
@@ -191,6 +202,16 @@ function Base.getproperty(this::GameManager, s::Symbol)
             newPos["y"] = position.y
 
             @async realdb_putRealTime(this.deps[1], this.deps[2], this.baseUrl, "/games/$(this.gameId)/players/$(this.user["localId"])/position", newPos)
+        end
+    elseif s == :sendHeartbeat
+        function ()
+            this.heartbeatCounter += 1
+            println("sending heartbeat $(this.heartbeatCounter)")
+            if this.currentGamePhase == this.gamePhases[1]
+                realdb_putRealTime(this.deps[1], this.deps[2], this.baseUrl, "/lobby/$(this.user["localId"])/$(this.playerId)/heartbeat", this.heartbeatCounter)
+            else
+                @async realdb_putRealTime(this.deps[1], this.deps[2], this.baseUrl, "/games/$(this.gameId)/players/$(this.user["localId"])/heartbeat", this.heartbeatCounter)
+            end
         end
     elseif s == :readyUp
         function ()
@@ -335,7 +356,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
     elseif s == :onShutDown
         function ()
             println("shut down")
-            realdb_deleteRealTime(this.deps[1], this.deps[2], "/lobby/$(this.user["localId"])", this.user["idToken"])
+            realdb_deleteRealTime(this.deps[1], this.deps[2], this.baseUrl, "/lobby/$(this.user["localId"])", this.user["idToken"])
         end
     else
         try

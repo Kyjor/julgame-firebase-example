@@ -1,10 +1,10 @@
 module CoinGrabber
-using JulGame
-using JulGame.Math
-using JulGame.SceneBuilderModule
-using HTTP, JSON
-const HTTP_ = HTTP
-const JSON_ = JSON
+    using JulGame
+    using JulGame.Math
+    using JulGame.SceneBuilderModule
+    using HTTP, JSON
+    const HTTP_ = HTTP
+    const JSON_ = JSON
 
     function run()
         SDL2.init()
@@ -53,7 +53,7 @@ const JSON_ = JSON
 
         println(dir)
         scene = Scene(dir, "scene.json")
-        main = scene.init(false, Vector2(1280, 720), 1.25, [playerName, chosenColor, [HTTP,JSON]])
+        main = scene.init(false, Vector2(1280, 720), 1.25, 60.0, [playerName, chosenColor, [HTTP,JSON]])
         return main
     end
 
