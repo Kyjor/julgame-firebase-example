@@ -254,8 +254,8 @@ function Base.getproperty(this::GameManager, s::Symbol)
         function ()
             for (key, value) in this.coinSpaces
                 x, y = parse.(Int, split(key, "x"))
-                sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "coin.png", false)
-                sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "coin-shadow.png", false)
+                sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "coin.png")
+                sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "coin-shadow.png")
 
                 sprite.injectRenderer(MAIN.renderer)
                 sprite1.injectRenderer(MAIN.renderer)
@@ -322,8 +322,8 @@ function Base.getproperty(this::GameManager, s::Symbol)
             colors = ["blue", "pink", "red", "yellow", "green", "purple"]
             colorIndex = findfirst(x -> x == player.second["color"], colors) - 1
 
-            sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "characters.png", false)
-            sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "shadow.png", false)
+            sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "characters.png")
+            sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "shadow.png")
             sprite.injectRenderer(MAIN.renderer)
             sprite1.injectRenderer(MAIN.renderer)
             sprite.crop = JulGame.Math.Vector4(16,colorIndex*16,16,16)
@@ -340,8 +340,8 @@ function Base.getproperty(this::GameManager, s::Symbol)
             colors = ["blue", "pink", "red", "yellow", "green", "purple"]
             colorIndex = findfirst(x -> x == player.second["color"], colors) - 1
 
-            sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "characters.png", false)
-            sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "shadow.png", false)
+            sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "characters.png")
+            sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "shadow.png")
             sprite.injectRenderer(MAIN.renderer)
             sprite1.injectRenderer(MAIN.renderer)
             sprite.crop = JulGame.Math.Vector4(16,colorIndex*16,16,16)
