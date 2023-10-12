@@ -34,7 +34,7 @@ mutable struct GameManager
         this.gameState = C_NULL
         this.coinMap = Dict()
         this.roomState = C_NULL
-        this.tickRate = 12
+        this.tickRate = 10
         this.tickTimer = 0.0
         this.task = C_NULL
         this.otherPlayers = Dict()
