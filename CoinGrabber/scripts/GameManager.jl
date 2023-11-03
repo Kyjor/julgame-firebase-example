@@ -218,6 +218,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
             if this.localPlayerState["isReady"] == true
                 return
             end
+            deleteat!(MAIN.scene.textBoxes, 1)
             println("ready")
 
             this.localPlayerState["isReady"] = true

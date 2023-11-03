@@ -65,5 +65,30 @@
         }
     ],
     "TextBoxes": [
+        {
+            "fontSize": 40,
+            "name": "TextBox",
+            "sizePercentage": {
+                "x": 0,
+                "y": 0
+            },
+            "id": 1,
+            "position": {
+                "x": 808,
+                "y": 200
+            },
+            "alpha": 255,
+            "autoSizeText": true,
+            "zoom": 1,
+            "isTextUpdated": false,
+            "size": {
+                "x": 304,
+                "y": 40
+            },
+            "isDefaultFont": true,
+            "isCentered": true,
+            "fontPath": "VT323\\VT323-Regular.ttf",
+            "text": "Press R to Ready Up"
+        }
     ]
 }
