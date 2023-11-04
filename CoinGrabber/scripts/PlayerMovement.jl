@@ -3,7 +3,7 @@ using JulGame.MainLoop
 using JulGame.SoundSourceModule
 
 mutable struct PlayerMovement
-    #animator
+    arrow
     blockedSpaces
     canMove
     elapsedTime
@@ -20,7 +20,7 @@ mutable struct PlayerMovement
     timer
     moveTimer
 
-    function PlayerMovement(shadow)
+    function PlayerMovement(followers)
         this = new()
 
         this.canMove = false
@@ -29,7 +29,8 @@ mutable struct PlayerMovement
         this.isFacingRight = true
         this.parent = C_NULL
         this.gameManager = MAIN.scene.entities[1].scripts[1]
-        this.shadow = shadow
+        this.shadow = followers[1]
+        this.arrow = followers[2]
         this.timeBetweenMoves = 0.2
         this.timer = 0.0
         this.moveTimer = 0.0
@@ -124,6 +125,7 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
             nextPos = JulGame.Math.Vector2f(JulGame.Math.SmoothLerp(this.positionBeforeMoving.x, this.targetPosition.x, this.moveTimer/this.timeBetweenMoves), JulGame.Math.SmoothLerp(this.positionBeforeMoving.y, this.targetPosition.y, this.moveTimer/this.timeBetweenMoves))
             this.parent.getTransform().position = nextPos
             this.shadow.getTransform().position = nextPos
+            this.arrow.getTransform().position = JulGame.Math.Vector2f(nextPos.x + 0.30, nextPos.y - 0.9)
             if (this.moveTimer/this.timeBetweenMoves) >= 1
                 this.moveTimer = 0.0
                 this.parent.getTransform().position = this.targetPosition
@@ -154,6 +156,7 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
         
             # Update the item's Y-coordinate
             this.parent.getSprite().offset = JulGame.Math.Vector2f(this.parent.getSprite().offset.x, this.startingY + bobOffset)
+            this.arrow.getSprite().offset = JulGame.Math.Vector2f(this.parent.getSprite().offset.x, this.startingY - bobOffset)
         end
     elseif s == :setParent
         function(parent)

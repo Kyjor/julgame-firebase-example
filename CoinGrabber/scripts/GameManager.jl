@@ -330,15 +330,19 @@ function Base.getproperty(this::GameManager, s::Symbol)
 
             sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "characters.png")
             sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "shadow.png")
+            sprite2 = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "arrow.png")
             sprite.injectRenderer(MAIN.renderer)
             sprite1.injectRenderer(MAIN.renderer)
+            sprite2.injectRenderer(MAIN.renderer)
             sprite.crop = JulGame.Math.Vector4(16,colorIndex*16,16,16)
             newPlayer = JulGame.EntityModule.Entity("$(MAIN.globals[1])", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["position"]["x"], player.second["position"]["y"])), [sprite])
             newPlayerShadow = JulGame.EntityModule.Entity("$(MAIN.globals[1]) shadow", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["position"]["x"], player.second["position"]["y"])), [sprite1])
-            newPlayer.addScript(PlayerMovement(newPlayerShadow))
+            newPlayerArrow = JulGame.EntityModule.Entity("$(MAIN.globals[1]) arrow", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["position"]["x"] + 0.30, player.second["position"]["y"] - 0.9), JulGame.Math.Vector2f(0.5, 0.25)), [sprite2])
+            newPlayer.addScript(PlayerMovement([newPlayerShadow, newPlayerArrow]))
 
             push!(MAIN.scene.entities, newPlayerShadow)
             push!(MAIN.scene.entities, newPlayer)
+            push!(MAIN.scene.entities, newPlayerArrow)
             return newPlayer
         end
     elseif s == :spawnOtherPlayer
@@ -363,6 +367,9 @@ function Base.getproperty(this::GameManager, s::Symbol)
         function ()
             println("shut down")
             realdb_deleteRealTime(this.deps[1], this.deps[2], this.baseUrl, "/lobby/$(this.user["localId"])", this.user["idToken"])
+            if this.currentGamePhase == this.gamePhases[4] || this.currentGamePhase == this.gamePhases[5]
+                realdb_deleteRealTime(this.deps[1], this.deps[2], this.baseUrl, "/games/$(this.gameId)/players/$(this.user["localId"])", this.user["idToken"])
+            end
         end
     else
         try
