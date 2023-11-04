@@ -75,10 +75,10 @@
             "id": 1,
             "position": {
                 "x": 808,
-                "y": 200
+                "y": 50
             },
             "alpha": 255,
-            "autoSizeText": true,
+            "autoSizeText": false,
             "zoom": 1,
             "isTextUpdated": false,
             "size": {

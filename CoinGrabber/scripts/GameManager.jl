@@ -54,7 +54,8 @@ mutable struct GameManager
         this.soundBank = Dict(
             "pickup_coin0"=> SoundSource(joinpath(pwd(),".."), "pickup_coin0.wav", 2, 50),
             "pickup_coin1"=> SoundSource(joinpath(pwd(),".."), "pickup_coin1.wav", 2, 50),
-            "pickup_coin2"=> SoundSource(joinpath(pwd(),".."), "pickup_coin2.wav", 2, 50)
+            "pickup_coin2"=> SoundSource(joinpath(pwd(),".."), "pickup_coin2.wav", 2, 50),
+            "power_up"=> SoundSource(joinpath(pwd(),".."), "power_up.wav", 2, 50)
         )
         this.heartbeatCounter = 0
         this.heartbeatTimer = 0.0
@@ -135,6 +136,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
             # Based on all of this, we spawn our player, other players, and coins
             # When "gameReady", count down from 3? Start the game
             if this.currentGamePhase == this.gamePhases[3]
+                MAIN.scene.textBoxes[1].updateText("Coins: 0")
                 this.currentGamePhase = this.gamePhases[4]
             end
 
@@ -185,6 +187,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
                         if oldGameState["players"][this.user["localId"]]["coins"] < game["players"][this.user["localId"]]["coins"]
                             println("toggleSound")
                             this.soundBank["pickup_coin$((game["players"][this.user["localId"]]["coins"]-1)%3)"].toggleSound()
+                            MAIN.scene.textBoxes[1].updateText("Coins: $(game["players"][this.user["localId"]]["coins"])")
                         end
                     end
                     this.roomState = game["players"]
@@ -218,7 +221,9 @@ function Base.getproperty(this::GameManager, s::Symbol)
             if this.localPlayerState["isReady"] == true
                 return
             end
-            deleteat!(MAIN.scene.textBoxes, 1)
+
+            MAIN.scene.textBoxes[1].updateText("Waiting for other players")
+            this.soundBank["power_up"].toggleSound()
             println("ready")
 
             this.localPlayerState["isReady"] = true
