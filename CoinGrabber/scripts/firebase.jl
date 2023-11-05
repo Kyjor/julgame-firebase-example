@@ -1,5 +1,4 @@
 function firebase_signinanon(HTTP, JSON, WEB_API_KEY, returnSecureToken::Bool=true)
-
     http_response = HTTP.post("https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$WEB_API_KEY",
     header="""{Content-Type: application/json}""",
     body="""{"returnSecureToken":"$returnSecureToken"}""")
@@ -9,13 +8,9 @@ function firebase_signinanon(HTTP, JSON, WEB_API_KEY, returnSecureToken::Bool=tr
 
 function realdb_postRealTime(HTTP, JSON, baseUrl, url, body = Dict("name" => "real_db_test"), auth = "null")
     final_url = "$baseUrl$url.json?auth=$auth"
-    #println("FINAL URL:", final_url)
     body = JSON.json(body)
-    println("Body:", body)
     res = HTTP.post(final_url, "", body)
-    if res.status == 200
-        println("POST successful")
-    else
+    if res.status != 200
         println("POST errored")
     end
     return JSON.parse(String(res.body))
@@ -23,38 +18,28 @@ end
 
 function realdb_getRealTime(HTTP, JSON, baseUrl, url, auth = "null")
     final_url = "$baseUrl$url.json?auth=$auth"
-    #print("FINAL URL:", final_url)
     res = HTTP.get(final_url)
-    if res.status == 200
-        #println("GET successful")
-    else
-        println("GET errored")
+    if res.status != 200
+        println("POST errored")
     end
     return JSON.parse(String(res.body))
 end
 
 function realdb_putRealTime(HTTP, JSON, baseUrl, url, body = Dict("name" => "real_db_test"), auth = "null")
     final_url = "$baseUrl$url.json?auth=$auth"
-    #println("FINAL URL:", final_url)
     body = JSON.json(body)
-    #println("Body:", body)
     res = HTTP.put(final_url, "", body)
-    if res.status == 200
-        #println("PUT successful")
-    else
-        println("PUT errored")
+    if res.status != 200
+        println("POST errored")
     end
     JSON.parse(String(res.body))
 end
 
 function realdb_deleteRealTime(HTTP, JSON, baseUrl, url, auth = "null")
     final_url = "$baseUrl$url.json?auth=$auth"
-    #println("FINAL URL:", final_url)
     res = HTTP.delete(final_url, "")
-    if res.status == 200
-        println("DELETE successful")
-    else
-        println("DELETE errored")
+    if res.status != 200
+        println("POST errored")
     end
     JSON.parse(String(res.body))
 end

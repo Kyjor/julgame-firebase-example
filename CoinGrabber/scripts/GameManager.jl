@@ -112,7 +112,6 @@ function Base.getproperty(this::GameManager, s::Symbol)
             # SETUP PHASE
             # We will be spawning other players and ourself in here
             if this.currentGamePhase == this.gamePhases[2]
-                #println("test")
                 if this.tickTimer >= 1/this.tickRate
                     this.task = this.get()
                     this.tickTimer = 0.0
@@ -153,19 +152,18 @@ function Base.getproperty(this::GameManager, s::Symbol)
                     this.task = this.get()
                     this.tickTimer = 0.0
                 end
+                if this.gameState === nothing || this.gameState == C_NULL
+                    this.currentGamePhase = this.gamePhases[5]
+                end
 
                 this.checkAndRemoveCoins()
             end
 
-            # # GAME IS OVER
-            # if this.currentGamePhase == this.gamePhases[3]
+            if this.currentGamePhase == this.gamePhases[5]
+                MAIN.scene.textBoxes[1].updateText("Game Over")
+                return
+            end
 
-            # end
-
-            # # IF WE ARE IN A GAME ROOM
-            # if this.currentGamePhase == this.gamePhases[3] && if this.currentGamePhase == this.gamePhases[4]
-
-            # end
             if this.heartbeatTimer > this.timeBetweenHeartbeats
                 this.sendHeartbeat()
                 this.heartbeatTimer = 0.0
@@ -183,9 +181,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
                     oldGameState = deepcopy(this.gameState)
                     this.gameState = game
                     if oldGameState != C_NULL && oldGameState !== nothing && haskey(oldGameState, "gameState") && haskey(oldGameState["gameState"], "coins") && haskey(oldGameState, "players")
-                        println("current coins: $(oldGameState["players"][this.user["localId"]]["coins"]), Next coins: $(game["players"][this.user["localId"]]["coins"])")
                         if oldGameState["players"][this.user["localId"]]["coins"] < game["players"][this.user["localId"]]["coins"]
-                            println("toggleSound")
                             this.soundBank["pickup_coin$((game["players"][this.user["localId"]]["coins"]-1)%3)"].toggleSound()
                             MAIN.scene.textBoxes[1].updateText("Coins: $(game["players"][this.user["localId"]]["coins"])")
                         end
@@ -209,7 +205,6 @@ function Base.getproperty(this::GameManager, s::Symbol)
     elseif s == :sendHeartbeat
         function ()
             this.heartbeatCounter += 1
-            println("sending heartbeat $(this.heartbeatCounter)")
             if this.currentGamePhase == this.gamePhases[1]
                 realdb_putRealTime(this.deps[1], this.deps[2], this.baseUrl, "/lobby/$(this.user["localId"])/$(this.playerId)/heartbeat", this.heartbeatCounter)
             else
@@ -224,7 +219,6 @@ function Base.getproperty(this::GameManager, s::Symbol)
 
             MAIN.scene.textBoxes[1].updateText("Waiting for other players")
             this.soundBank["power_up"].toggleSound()
-            println("ready")
 
             this.localPlayerState["isReady"] = true
             @async realdb_putRealTime(this.deps[1], this.deps[2], this.baseUrl, "/lobby/$(this.user["localId"])/$(this.playerId)", this.localPlayerState, this.user["idToken"])
@@ -278,7 +272,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
     elseif s == :checkAndRemoveCoins
         function ()
 
-            if haskey(this.gameState["gameState"], "coins") && length(this.gameState["gameState"]["coins"]) != length(this.coinMap)
+            if this.gameState !== nothing && haskey(this.gameState["gameState"], "coins") && length(this.gameState["gameState"]["coins"]) != length(this.coinMap)
                 for (key, value) in this.coinMap
                     if haskey(this.gameState["gameState"]["coins"], key)
                         continue
@@ -290,7 +284,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
                     deleteat!(MAIN.scene.entities, coinShadowIndex)
                     delete!(this.coinMap, key)
                 end
-            elseif !haskey(this.gameState["gameState"], "coins") && length(this.coinMap) == 1
+            elseif this.gameState !== nothing && !haskey(this.gameState["gameState"], "coins") && length(this.coinMap) == 1
                 for (key, value) in this.coinMap
                     coinIndex = findfirst(x -> x == this.coinMap[key][1], MAIN.scene.entities)
                     deleteat!(MAIN.scene.entities, coinIndex)
@@ -306,15 +300,12 @@ function Base.getproperty(this::GameManager, s::Symbol)
             try
                 count = 1
                 for player in this.gameState["players"]
-                    println("player $(count)")
                     count += 1
                     playerId = player.first
                     
                     if playerId == this.user["localId"] # local player
-                        println("spawning local player")
                         this.spawnLocalPlayer(player)
                     else # add new other player
-                        println("spawning other player")
                         this.otherPlayers[playerId] = [player.second, this.spawnOtherPlayer(player)]
                     end
                 end
@@ -365,7 +356,6 @@ function Base.getproperty(this::GameManager, s::Symbol)
         end
     elseif s == :onShutDown
         function ()
-            println("shut down")
             realdb_deleteRealTime(this.deps[1], this.deps[2], this.baseUrl, "/lobby/$(this.user["localId"])", this.user["idToken"])
             if this.currentGamePhase == this.gamePhases[4] || this.currentGamePhase == this.gamePhases[5]
                 realdb_deleteRealTime(this.deps[1], this.deps[2], this.baseUrl, "/games/$(this.gameId)/players/$(this.user["localId"])", this.user["idToken"])
