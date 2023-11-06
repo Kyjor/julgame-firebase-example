@@ -15,12 +15,15 @@ mutable struct GameManager
     heartbeatCounter
     heartbeatTimer
     isLocalPlayerSpawned
+    localPlayer
     localPlayerState
     otherPlayers
     parent
     playerId
+    positionUpdate
     results
     roomState
+    roundNumber
     soundBank
     task
     tickRate
@@ -34,7 +37,7 @@ mutable struct GameManager
         this.gameState = C_NULL
         this.coinMap = Dict()
         this.roomState = C_NULL
-        this.tickRate = 10
+        this.tickRate = 12
         this.tickTimer = 0.0
         this.task = C_NULL
         this.otherPlayers = Dict()
@@ -45,7 +48,8 @@ mutable struct GameManager
             "SETUP",
             "PRE",
             "GAME",
-            "POST"
+            "POST",
+            "BETWEEN"
             ]
         this.currentGamePhase = this.gamePhases[1]
         this.blockedSpaces = Dict()
@@ -60,7 +64,10 @@ mutable struct GameManager
         this.heartbeatCounter = 0
         this.heartbeatTimer = 0.0
         this.timeBetweenHeartbeats = 10.0 
-        
+        this.roundNumber = 1
+        this.localPlayer = C_NULL
+        this.positionUpdate = C_NULL
+
         return this
     end
 end
@@ -164,6 +171,10 @@ function Base.getproperty(this::GameManager, s::Symbol)
                 return
             end
 
+            if this.currentGamePhase == this.gamePhases[6]
+                #println("new round")
+            end
+
             if this.heartbeatTimer > this.timeBetweenHeartbeats
                 this.sendHeartbeat()
                 this.heartbeatTimer = 0.0
@@ -188,10 +199,18 @@ function Base.getproperty(this::GameManager, s::Symbol)
                     end
                     this.roomState = game["players"]
                     this.coinSpaces = game["gameState"]["coins"]
+                    if game["gameState"]["roundNumber"] > this.roundNumber
+                        this.currentGamePhase = this.gamePhases[6]
+                        this.roundNumber = game["gameState"]["roundNumber"]
+                        this.spawnAllCoins()
+                        this.moveAllPlayers()
+                        this.currentGamePhase = this.gamePhases[3]
+                    end
                 end
                     sleep(0.001)
             catch e
                 print(e)
+                Base.show_backtrace(stdout, catch_backtrace())
             end
         end
     elseif s == :updatePos
@@ -304,9 +323,27 @@ function Base.getproperty(this::GameManager, s::Symbol)
                     playerId = player.first
                     
                     if playerId == this.user["localId"] # local player
-                        this.spawnLocalPlayer(player)
+                        this.localPlayer = this.spawnLocalPlayer(player)
                     else # add new other player
                         this.otherPlayers[playerId] = [player.second, this.spawnOtherPlayer(player)]
+                    end
+                end
+            catch e
+                println(e)
+                Base.show_backtrace(stdout, catch_backtrace())
+            end
+        end
+    elseif s == :moveAllPlayers
+        function ()
+            try
+                count = 1
+                for player in this.gameState["players"]
+                    count += 1
+                    playerId = player.first
+                    if playerId == this.user["localId"] # local player
+                        this.positionUpdate = JulGame.Math.Vector2f(player.second["position"]["x"], player.second["position"]["y"])
+                        this.localPlayer.scripts[1].frozen = true
+                        #this.localPlayer.getTransform().position = JulGame.Math.Vector2f(player.second["position"]["x"], player.second["position"]["y"])
                     end
                 end
             catch e

@@ -7,6 +7,7 @@ mutable struct PlayerMovement
     blockedSpaces
     canMove
     elapsedTime
+    frozen
     gameManager
     input
     isFacingRight
@@ -54,7 +55,8 @@ mutable struct PlayerMovement
             "move"=> SoundSource(joinpath(pwd(),".."), "player_move.wav", 1, 50),
             "can_not_move"=> SoundSource(joinpath(pwd(),".."), "player_can_not_move.wav", 1, 50),
         )
-        
+        this.frozen = false
+
         return this
     end
 end
@@ -68,8 +70,30 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
         end
     elseif s == :update
         function(deltaTime)
-            input = MAIN.input
             currentPosition = this.parent.getTransform().position
+            if this.gameManager.positionUpdate != C_NULL
+                this.canMove = false
+                this.timer = 0.0
+                println("position update")
+                currentPosition = this.gameManager.positionUpdate
+                this.targetPosition = this.gameManager.positionUpdate
+                this.parent.getTransform().position = this.gameManager.positionUpdate
+                this.shadow.getTransform().position = this.gameManager.positionUpdate
+                this.arrow.getTransform().position = JulGame.Math.Vector2f(this.gameManager.positionUpdate.x + 0.30, this.gameManager.positionUpdate.y - 0.9)
+                this.frozen = false
+                this.gameManager.positionUpdate = C_NULL
+                return
+            end
+            if this.frozen
+                return
+            end
+
+            input = MAIN.input
+            # if this.gameManager.localPlayer != C_NULL && this.gameManager.localPlayer.getTransform().position.x != currentPosition.x || this.gameManager.localPlayer.getTransform().position.y != currentPosition.y
+            #     this.parent.getTransform().position = JulGame.Math.Vector2f(this.gameManager.localPlayer.position.x, this.gameManager.localPlayer.position.y)
+            #     currentPosition = JulGame.Math.Vector2f(this.parent.getTransform().position.x, this.parent.getTransform().position.y)
+            #     this.targetPosition = JulGame.Math.Vector2f(currentPosition.x, currentPosition.y)
+            # end
             # Inputs match SDL2 scancodes after "SDL_SCANCODE_"
             # https://wiki.libsdl.org/SDL2/SDL_Scancode
             # Spaces full scancode is "SDL_SCANCODE_SPACE" so we use "SPACE". Every other key is the same.
