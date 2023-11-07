@@ -5,6 +5,7 @@ include("firebase.jl")
 mutable struct GameManager
     baseUrl
     blockedSpaces
+    coinCount
     coinMap
     coinSpaces
     coinsTextSet
@@ -13,6 +14,7 @@ mutable struct GameManager
     gameId
     gamePhases
     gameState
+    previousGameState
     heartbeatCounter
     heartbeatTimer
     isLocalPlayerSpawned
@@ -36,6 +38,7 @@ mutable struct GameManager
         this = new()
 
         this.gameState = C_NULL
+        this.coinCount = 0
         this.coinMap = Dict()
         this.roomState = C_NULL
         this.tickRate = 12
@@ -57,10 +60,10 @@ mutable struct GameManager
         this.coinSpaces = C_NULL
         this.isLocalPlayerSpawned = false
         this.soundBank = Dict(
-            "pickup_coin0"=> SoundSource(joinpath(pwd(),".."), "pickup_coin0.wav", 2, 50),
-            "pickup_coin1"=> SoundSource(joinpath(pwd(),".."), "pickup_coin1.wav", 2, 50),
-            "pickup_coin2"=> SoundSource(joinpath(pwd(),".."), "pickup_coin2.wav", 2, 50),
-            "power_up"=> SoundSource(joinpath(pwd(),".."), "power_up.wav", 2, 50)
+            "pickup_coin0"=> SoundSource(joinpath(pwd(),".."), "pickup_coin0.wav", 2, 40),
+            "pickup_coin1"=> SoundSource(joinpath(pwd(),".."), "pickup_coin1.wav", 2, 40),
+            "pickup_coin2"=> SoundSource(joinpath(pwd(),".."), "pickup_coin2.wav", 2, 40),
+            "power_up"=> SoundSource(joinpath(pwd(),".."), "power_up.wav", 2, 45)
         )
         this.heartbeatCounter = 0
         this.heartbeatTimer = 0.0
@@ -69,7 +72,8 @@ mutable struct GameManager
         this.localPlayer = C_NULL
         this.positionUpdate = C_NULL
         this.coinsTextSet = false
-        
+        this.previousGameState = C_NULL
+
         return this
     end
 end
@@ -172,12 +176,13 @@ function Base.getproperty(this::GameManager, s::Symbol)
             end
 
             if this.currentGamePhase == this.gamePhases[5]
-                MAIN.scene.textBoxes[1].updateText("Game Over")
+                MAIN.scene.textBoxes[1].updateText("Game Over. You $(this.getPlayerResult())")
+                this.currentGamePhase = this.gamePhases[6]
                 return
             end
 
             if this.currentGamePhase == this.gamePhases[6]
-                #println("new round")
+                return
             end
 
             if this.heartbeatTimer > this.timeBetweenHeartbeats
@@ -200,7 +205,9 @@ function Base.getproperty(this::GameManager, s::Symbol)
                         if oldGameState["players"][this.user["localId"]]["coins"] < game["players"][this.user["localId"]]["coins"]
                             this.soundBank["pickup_coin$((game["players"][this.user["localId"]]["coins"]-1)%3)"].toggleSound()
                             MAIN.scene.textBoxes[1].updateText("Coins: $(game["players"][this.user["localId"]]["coins"])")
+                            this.coinCount += 1
                         end
+                        this.previousGameState = oldGameState
                     end
                     this.roomState = game["players"]
                     this.coinSpaces = game["gameState"]["coins"]
@@ -225,6 +232,15 @@ function Base.getproperty(this::GameManager, s::Symbol)
             newPos["y"] = position.y
 
             @async realdb_putRealTime(this.deps[1], this.deps[2], this.baseUrl, "/games/$(this.gameId)/players/$(this.user["localId"])/position", newPos)
+        end
+    elseif s == :getPlayerResult
+        function ()
+            myCoins = this.coinCount
+            maxCoins = Int(myCoins)
+            for (key, value) in this.previousGameState["players"]
+                maxCoins = max(maxCoins, this.previousGameState["players"][key]["coins"])
+            end
+            return maxCoins > myCoins ? "LOSE" : "WIN!"
         end
     elseif s == :sendHeartbeat
         function ()
@@ -348,7 +364,6 @@ function Base.getproperty(this::GameManager, s::Symbol)
                     if playerId == this.user["localId"] # local player
                         this.positionUpdate = JulGame.Math.Vector2f(player.second["position"]["x"], player.second["position"]["y"])
                         this.localPlayer.scripts[1].frozen = true
-                        #this.localPlayer.getTransform().position = JulGame.Math.Vector2f(player.second["position"]["x"], player.second["position"]["y"])
                     end
                 end
             catch e

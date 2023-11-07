@@ -74,7 +74,7 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
             if this.gameManager.positionUpdate != C_NULL
                 this.canMove = false
                 this.timer = 0.0
-                println("position update")
+
                 currentPosition = this.gameManager.positionUpdate
                 this.targetPosition = this.gameManager.positionUpdate
                 this.parent.getTransform().position = this.gameManager.positionUpdate
@@ -89,11 +89,7 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
             end
 
             input = MAIN.input
-            # if this.gameManager.localPlayer != C_NULL && this.gameManager.localPlayer.getTransform().position.x != currentPosition.x || this.gameManager.localPlayer.getTransform().position.y != currentPosition.y
-            #     this.parent.getTransform().position = JulGame.Math.Vector2f(this.gameManager.localPlayer.position.x, this.gameManager.localPlayer.position.y)
-            #     currentPosition = JulGame.Math.Vector2f(this.parent.getTransform().position.x, this.parent.getTransform().position.y)
-            #     this.targetPosition = JulGame.Math.Vector2f(currentPosition.x, currentPosition.y)
-            # end
+           
             # Inputs match SDL2 scancodes after "SDL_SCANCODE_"
             # https://wiki.libsdl.org/SDL2/SDL_Scancode
             # Spaces full scancode is "SDL_SCANCODE_SPACE" so we use "SPACE". Every other key is the same.
