@@ -7,6 +7,7 @@ mutable struct GameManager
     blockedSpaces
     coinMap
     coinSpaces
+    coinsTextSet
     currentGamePhase
     deps
     gameId
@@ -67,7 +68,8 @@ mutable struct GameManager
         this.roundNumber = 1
         this.localPlayer = C_NULL
         this.positionUpdate = C_NULL
-
+        this.coinsTextSet = false
+        
         return this
     end
 end
@@ -80,7 +82,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
             name = MAIN.globals[1]
             color = MAIN.globals[2]
             this.deps = MAIN.globals[3]
-            #this.parent.getSoundSource().toggleSound(-1)
+            this.parent.getSoundSource().toggleSound(-1)
 
             this.baseUrl = "https://multiplayer-demo-2f287-default-rtdb.firebaseio.com"
             this.user = firebase_signinanon(this.deps[1], this.deps[2], "AIzaSyCxuzQNfmIMijosSYn8UWfQGOrQYARJ4iE")
@@ -142,7 +144,10 @@ function Base.getproperty(this::GameManager, s::Symbol)
             # Based on all of this, we spawn our player, other players, and coins
             # When "gameReady", count down from 3? Start the game
             if this.currentGamePhase == this.gamePhases[3]
-                MAIN.scene.textBoxes[1].updateText("Coins: 0")
+                if !this.coinsTextSet 
+                    MAIN.scene.textBoxes[1].updateText("Coins: 0")
+                    this.coinsTextSet = true
+                end
                 this.currentGamePhase = this.gamePhases[4]
             end
 
