@@ -21,7 +21,7 @@ end
 function Base.getproperty(this::Coin, s::Symbol)
     if s == :initialize
         function()
-            this.startingY = this.parent.getTransform().position.y
+            this.startingY = this.parent.transform.position.y
 
         end
     elseif s == :update
@@ -46,8 +46,8 @@ function Base.getproperty(this::Coin, s::Symbol)
             scaleOffset = scaleRange * (1.0 - cos(bobSpeed * this.elapsedTime)) / 2.0
         
             # Update the item's Y-coordinate
-            this.parent.getTransform().position = JulGame.Math.Vector2f(this.parent.getTransform().position.x, this.startingY + bobOffset)
-            this.shadow.getTransform().scale = JulGame.Math.Vector2f(1.0 + scaleOffset, 1.0 - scaleOffset)
+            this.parent.transform.position = JulGame.Math.Vector2f(this.parent.transform.position.x, this.startingY + bobOffset)
+            this.shadow.transform.scale = JulGame.Math.Vector2f(1.0 + scaleOffset, 1.0 - scaleOffset)
         end
     else
         try

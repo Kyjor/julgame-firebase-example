@@ -1,4 +1,5 @@
 using JulGame.MainLoop 
+using JulGame.SoundSourceModule
 
 include("firebase.jl")
 
@@ -59,12 +60,6 @@ mutable struct GameManager
         this.blockedSpaces = Dict()
         this.coinSpaces = C_NULL
         this.isLocalPlayerSpawned = false
-        this.soundBank = Dict(
-            "pickup_coin0"=> SoundSource(joinpath(pwd(),".."), "pickup_coin0.wav", 2, 40),
-            "pickup_coin1"=> SoundSource(joinpath(pwd(),".."), "pickup_coin1.wav", 2, 40),
-            "pickup_coin2"=> SoundSource(joinpath(pwd(),".."), "pickup_coin2.wav", 2, 40),
-            "power_up"=> SoundSource(joinpath(pwd(),".."), "power_up.wav", 2, 45)
-        )
         this.heartbeatCounter = 0
         this.heartbeatTimer = 0.0
         this.timeBetweenHeartbeats = 10.0 
@@ -82,11 +77,17 @@ function Base.getproperty(this::GameManager, s::Symbol)
     if s == :initialize
         function()
             MAIN.scene.camera.target = JulGame.TransformModule.Transform(JulGame.Math.Vector2f(2.5,5))
-            MAIN.cameraBackgroundColor = [0, 128, 128]
+            MAIN.cameraBackgroundColor = (0, 128, 128)
             name = MAIN.globals[1]
             color = MAIN.globals[2]
             this.deps = MAIN.globals[3]
-            this.parent.getSoundSource().toggleSound(-1)
+            this.soundBank = Dict(
+            "pickup_coin0"=> this.parent.createSoundSource(SoundSource(Int32(2), false, "pickup_coin0.wav", Int32(40))),
+            "pickup_coin1"=> this.parent.createSoundSource(SoundSource(Int32(2), false, "pickup_coin1.wav", Int32(40))),
+            "pickup_coin2"=> this.parent.createSoundSource(SoundSource(Int32(2), false, "pickup_coin2.wav", Int32(40))),
+            "power_up"=> this.parent.createSoundSource(SoundSource(Int32(2), false, "power_up.wav", Int32(45)))
+        )
+            this.parent.soundSource.toggleSound(-1)
 
             this.baseUrl = "https://multiplayer-demo-2f287-default-rtdb.firebaseio.com"
             this.user = firebase_signinanon(this.deps[1], this.deps[2], "AIzaSyCxuzQNfmIMijosSYn8UWfQGOrQYARJ4iE")

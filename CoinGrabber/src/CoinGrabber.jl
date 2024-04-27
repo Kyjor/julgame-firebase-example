@@ -7,17 +7,12 @@ module CoinGrabber
     const JSON_ = JSON
 
     function run()
-        SDL2.init()
-
-        global playerName = "toto"
-
         # Map the color choice to the corresponding color
         colors = ["blue", "pink", "red", "yellow", "green", "purple"]
         chosenColor = colors[rand(1:length(colors))]
 
-        dir = joinpath(pwd(), "..") 
-        scene = Scene(dir, "scene.json")
-        main = scene.init(false, Vector2(1280, 720), 1.25, 60.0, [playerName, chosenColor, [HTTP,JSON]])
+        scene = Scene("scene.json")
+        main = scene.init("Coin Grabber", false, Vector2(), Vector2(1280, 720), false, 1.0, true, 60.0, ["player", chosenColor, [HTTP,JSON]])
         return main
     end
 

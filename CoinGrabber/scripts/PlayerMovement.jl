@@ -52,8 +52,8 @@ mutable struct PlayerMovement
             "9x9"=> true)
 
         this.soundBank = Dict(
-            "move"=> SoundSource(joinpath(pwd(),".."), "player_move.wav", 1, 50),
-            "can_not_move"=> SoundSource(joinpath(pwd(),".."), "player_can_not_move.wav", 1, 50),
+            "move"=> SoundSource("player_move.wav", 1, 50),
+            "can_not_move"=> SoundSource("player_can_not_move.wav", 1, 50),
         )
         this.frozen = false
 
@@ -64,22 +64,22 @@ end
 function Base.getproperty(this::PlayerMovement, s::Symbol)
     if s == :initialize
         function()
-            this.targetPosition = JulGame.Math.Vector2f(this.parent.getTransform().position.x, this.parent.getTransform().position.y)
-            this.startingY = this.parent.getSprite().offset.y
+            this.targetPosition = JulGame.Math.Vector2f(this.parent.transform.position.x, this.parent.transform.position.y)
+            this.startingY = this.parent.sprite.offset.y
 
         end
     elseif s == :update
         function(deltaTime)
-            currentPosition = this.parent.getTransform().position
+            currentPosition = this.parent.transform.position
             if this.gameManager.positionUpdate != C_NULL
                 this.canMove = false
                 this.timer = 0.0
 
                 currentPosition = this.gameManager.positionUpdate
                 this.targetPosition = this.gameManager.positionUpdate
-                this.parent.getTransform().position = this.gameManager.positionUpdate
-                this.shadow.getTransform().position = this.gameManager.positionUpdate
-                this.arrow.getTransform().position = JulGame.Math.Vector2f(this.gameManager.positionUpdate.x + 0.30, this.gameManager.positionUpdate.y - 0.9)
+                this.parent.transform.position = this.gameManager.positionUpdate
+                this.shadow.transform.position = this.gameManager.positionUpdate
+                this.arrow.transform.position = JulGame.Math.Vector2f(this.gameManager.positionUpdate.x + 0.30, this.gameManager.positionUpdate.y - 0.9)
                 this.frozen = false
                 this.gameManager.positionUpdate = C_NULL
                 return
@@ -116,7 +116,7 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
                     if dx != 0
                         if (dx < 0 && this.isFacingRight) || (dx > 0 && !this.isFacingRight)
                             this.isFacingRight = !this.isFacingRight
-                            this.parent.getSprite().flip()
+                            this.parent.sprite.flip()
                         end
                     end
                 end
@@ -127,7 +127,7 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
                 this.canMove = true
             end
 
-            if this.targetPosition.x != this.parent.getTransform().position.x || this.targetPosition.y != this.parent.getTransform().position.y
+            if this.targetPosition.x != this.parent.transform.position.x || this.targetPosition.y != this.parent.transform.position.y
                 this.moveTimer += deltaTime
                 this.movePlayerSmoothly()
             end 
@@ -143,12 +143,12 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
 
             this.canMove = false
             nextPos = JulGame.Math.Vector2f(JulGame.Math.SmoothLerp(this.positionBeforeMoving.x, this.targetPosition.x, this.moveTimer/this.timeBetweenMoves), JulGame.Math.SmoothLerp(this.positionBeforeMoving.y, this.targetPosition.y, this.moveTimer/this.timeBetweenMoves))
-            this.parent.getTransform().position = nextPos
-            this.shadow.getTransform().position = nextPos
-            this.arrow.getTransform().position = JulGame.Math.Vector2f(nextPos.x + 0.30, nextPos.y - 0.9)
+            this.parent.transform.position = nextPos
+            this.shadow.transform.position = nextPos
+            this.arrow.transform.position = JulGame.Math.Vector2f(nextPos.x + 0.30, nextPos.y - 0.9)
             if (this.moveTimer/this.timeBetweenMoves) >= 1
                 this.moveTimer = 0.0
-                this.parent.getTransform().position = this.targetPosition
+                this.parent.transform.position = this.targetPosition
                 this.canMove = true
             end 
         end
@@ -174,8 +174,8 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
             bobOffset = minBobHeight + bobHeight * (1.0 - cos(bobSpeed * this.elapsedTime)) / 2.0
         
             # Update the item's Y-coordinate
-            this.parent.getSprite().offset = JulGame.Math.Vector2f(this.parent.getSprite().offset.x, this.startingY + bobOffset)
-            this.arrow.getSprite().offset = JulGame.Math.Vector2f(this.parent.getSprite().offset.x, this.startingY - bobOffset)
+            this.parent.sprite.offset = JulGame.Math.Vector2f(this.parent.sprite.offset.x, this.startingY + bobOffset)
+            this.arrow.sprite.offset = JulGame.Math.Vector2f(this.parent.sprite.offset.x, this.startingY - bobOffset)
         end
     elseif s == :setParent
         function(parent)
