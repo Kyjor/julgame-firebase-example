@@ -188,18 +188,18 @@
             "id": 1,
             "isWorldEntity": false,
             "position": {
-                "x": 264,
-                "y": 356
+                "x": 172,
+                "y": 50
             },
             "persistentBetweenScenes": false,
             "isCenteredX": true,
             "alpha": 255,
             "size": {
-                "x": 304,
-                "y": 40
+                "x": 456,
+                "y": 48
             },
-            "isCenteredY": true,
-            "fontPath": "VT323//VT323-Regular.ttf",
+            "isCenteredY": false,
+            "fontPath": "FiraCode//ttf//FiraCode-Medium.ttf",
             "text": "Press R to Ready Up",
             "type": "TextBox"
         }

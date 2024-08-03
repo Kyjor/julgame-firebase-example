@@ -51,10 +51,10 @@ mutable struct PlayerMovement
             "8x9"=> true,
             "9x9"=> true)
 
-        this.soundBank = Dict(
-            "move"=> SoundSource("player_move.wav", 1, 50),
-            "can_not_move"=> SoundSource("player_can_not_move.wav", 1, 50),
-        )
+        # this.soundBank = Dict(
+        #     "move"=> SoundSource("player_move.wav", 1, 50),
+        #     "can_not_move"=> SoundSource("player_can_not_move.wav", 1, 50),
+        # )
         this.frozen = false
 
         return this
@@ -102,21 +102,21 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
 
             # Loop through the directions
             for (direction, (dx, dy)) in directions
-                if input.getButtonHeldDown(direction) && this.canMove
-                    if input.getButtonPressed(direction)
+                if JulGame.InputModule.get_button_held_down(input, direction) && this.canMove
+                    if JulGame.InputModule.get_button_pressed(input, direction)
                         new_position = JulGame.Math.Vector2f(currentPosition.x + dx, currentPosition.y + dy)
                         if this.canPlayerMoveHere(new_position)
                             this.positionBeforeMoving = currentPosition
                             this.targetPosition = new_position
                         else
-                            this.soundBank["can_not_move"].toggleSound()
+                            # this.soundBank["can_not_move"].toggleSound()
                         end
                     end
                     
                     if dx != 0
                         if (dx < 0 && this.isFacingRight) || (dx > 0 && !this.isFacingRight)
                             this.isFacingRight = !this.isFacingRight
-                            this.parent.sprite.flip()
+                            JulGame.Component.flip(this.parent.sprite)
                         end
                     end
                 end
@@ -138,7 +138,7 @@ function Base.getproperty(this::PlayerMovement, s::Symbol)
     elseif s == :movePlayerSmoothly
         function()
             if this.canMove
-                this.soundBank["move"].toggleSound()
+                # this.soundBank["move"].toggleSound()
             end
 
             this.canMove = false

@@ -76,18 +76,18 @@ end
 function Base.getproperty(this::GameManager, s::Symbol)
     if s == :initialize
         function()
-            MAIN.scene.camera.target = JulGame.TransformModule.Transform(JulGame.Math.Vector2f(2.5,5))
+            MAIN.scene.camera.target = JulGame.TransformModule.Transform(JulGame.Math.Vector2f(0,0))
             MAIN.cameraBackgroundColor = (0, 128, 128)
             name = MAIN.globals[1]
             color = MAIN.globals[2]
             this.deps = MAIN.globals[3]
-            this.soundBank = Dict(
-            "pickup_coin0"=> this.parent.createSoundSource(SoundSource(Int32(2), false, "pickup_coin0.wav", Int32(40))),
-            "pickup_coin1"=> this.parent.createSoundSource(SoundSource(Int32(2), false, "pickup_coin1.wav", Int32(40))),
-            "pickup_coin2"=> this.parent.createSoundSource(SoundSource(Int32(2), false, "pickup_coin2.wav", Int32(40))),
-            "power_up"=> this.parent.createSoundSource(SoundSource(Int32(2), false, "power_up.wav", Int32(45)))
-        )
-            this.parent.soundSource.toggleSound(-1)
+        #     this.soundBank = Dict(
+        #     "pickup_coin0"=> this.parent.createSoundSource(SoundSource(Int32(2), false, "pickup_coin0.wav", Int32(40))),
+        #     "pickup_coin1"=> this.parent.createSoundSource(SoundSource(Int32(2), false, "pickup_coin1.wav", Int32(40))),
+        #     "pickup_coin2"=> this.parent.createSoundSource(SoundSource(Int32(2), false, "pickup_coin2.wav", Int32(40))),
+        #     "power_up"=> this.parent.createSoundSource(SoundSource(Int32(2), false, "power_up.wav", Int32(45)))
+        # )
+            # this.parent.soundSource.toggleSound(-1)
 
             this.baseUrl = "https://multiplayer-demo-2f287-default-rtdb.firebaseio.com"
             this.user = firebase_signinanon(this.deps[1], this.deps[2], "AIzaSyCxuzQNfmIMijosSYn8UWfQGOrQYARJ4iE")
@@ -103,7 +103,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
             # IN LOBBY
             # We will be readying up and waiting for a game id to move on to next phase
             if this.currentGamePhase == this.gamePhases[1]
-                if MAIN.input.getButtonPressed("R")
+                if JulGame.InputModule.get_button_pressed(MAIN.input, "R")
                     this.readyUp()
                 end
                 if this.gameId == "null" && this.localPlayerState["isReady"]
@@ -150,7 +150,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
             # When "gameReady", count down from 3? Start the game
             if this.currentGamePhase == this.gamePhases[3]
                 if !this.coinsTextSet 
-                    MAIN.scene.textBoxes[1].updateText("Coins: 0")
+                    JulGame.UI.update_text(MAIN.scene.uiElements[1], "Coins: 0")
                     this.coinsTextSet = true
                 end
                 this.currentGamePhase = this.gamePhases[4]
@@ -177,7 +177,7 @@ function Base.getproperty(this::GameManager, s::Symbol)
             end
 
             if this.currentGamePhase == this.gamePhases[5]
-                MAIN.scene.textBoxes[1].updateText("Game Over. You $(this.getPlayerResult())")
+                JulGame.UI.update_text(MAIN.scene.uiElements[1], "Game Over. You $(this.getPlayerResult())")
                 this.currentGamePhase = this.gamePhases[6]
                 return
             end
@@ -204,8 +204,8 @@ function Base.getproperty(this::GameManager, s::Symbol)
                     this.gameState = game
                     if oldGameState != C_NULL && oldGameState !== nothing && haskey(oldGameState, "gameState") && haskey(oldGameState["gameState"], "coins") && haskey(oldGameState, "players")
                         if oldGameState["players"][this.user["localId"]]["coins"] < game["players"][this.user["localId"]]["coins"]
-                            this.soundBank["pickup_coin$((game["players"][this.user["localId"]]["coins"]-1)%3)"].toggleSound()
-                            MAIN.scene.textBoxes[1].updateText("Coins: $(game["players"][this.user["localId"]]["coins"])")
+                            # this.soundBank["pickup_coin$((game["players"][this.user["localId"]]["coins"]-1)%3)"].toggleSound()
+                            JulGame.UI.update_text(MAIN.scene.uiElements[1], "Coins: $(game["players"][this.user["localId"]]["coins"])")
                             this.coinCount += 1
                         end
                         this.previousGameState = oldGameState
@@ -258,8 +258,8 @@ function Base.getproperty(this::GameManager, s::Symbol)
                 return
             end
 
-            MAIN.scene.textBoxes[1].updateText("Waiting for other players")
-            this.soundBank["power_up"].toggleSound()
+            JulGame.UI.update_text(MAIN.scene.uiElements[1], "Waiting for other players")
+            # this.soundBank["power_up"].toggleSound()
 
             this.localPlayerState["isReady"] = true
             @async realdb_putRealTime(this.deps[1], this.deps[2], this.baseUrl, "/lobby/$(this.user["localId"])/$(this.playerId)", this.localPlayerState, this.user["idToken"])
@@ -295,14 +295,15 @@ function Base.getproperty(this::GameManager, s::Symbol)
         function ()
             for (key, value) in this.coinSpaces
                 x, y = parse.(Int, split(key, "x"))
-                sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "coin.png")
-                sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "coin-shadow.png")
+                sprite = JulGame.SpriteModule.InternalSprite(this.parent::Entity, "coin.png", C_NULL, false, Vector3(255,255,255), false; isWorldEntity=true)
+                sprite1 = JulGame.SpriteModule.InternalSprite(this.parent::Entity, "coin-shadow.png", C_NULL, false, Vector3(0,0,0), false; isWorldEntity=true)
 
-                sprite.injectRenderer(MAIN.renderer)
-                sprite1.injectRenderer(MAIN.renderer)
-                newCoin = JulGame.EntityModule.Entity("coin", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(x,y)), [sprite])
-                newCoinShadow = JulGame.EntityModule.Entity("coin", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(x,y)), [sprite1])
-                newCoin.addScript(Coin(newCoinShadow))
+                newCoin = JulGame.EntityModule.Entity("coin", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(x,y)))
+                newCoin.sprite = sprite
+
+                newCoinShadow = JulGame.EntityModule.Entity("coin", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(x,y)))
+                newCoinShadow.sprite = sprite1
+                JulGame.add_script(newCoin, Coin(newCoinShadow))
                 
                 push!(MAIN.scene.entities, newCoin)
                 push!(MAIN.scene.entities, newCoinShadow)
@@ -377,17 +378,18 @@ function Base.getproperty(this::GameManager, s::Symbol)
             colors = ["blue", "pink", "red", "yellow", "green", "purple"]
             colorIndex = findfirst(x -> x == player.second["color"], colors) - 1
 
-            sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "characters.png")
-            sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "shadow.png")
-            sprite2 = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "arrow.png")
-            sprite.injectRenderer(MAIN.renderer)
-            sprite1.injectRenderer(MAIN.renderer)
-            sprite2.injectRenderer(MAIN.renderer)
+            sprite = JulGame.SpriteModule.InternalSprite(this.parent::Entity, "characters.png", C_NULL, false, Vector3(255,255,255), false; isWorldEntity=true)
+            sprite1 = JulGame.SpriteModule.InternalSprite(this.parent::Entity, "shadow.png", C_NULL, false, Vector3(0,0,0), false; isWorldEntity=true)
+            sprite2 = JulGame.SpriteModule.InternalSprite(this.parent::Entity, "arrow.png", C_NULL, false, Vector3(255,255,255), false; isWorldEntity=true)
+
             sprite.crop = JulGame.Math.Vector4(16,colorIndex*16,16,16)
-            newPlayer = JulGame.EntityModule.Entity("$(MAIN.globals[1])", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["position"]["x"], player.second["position"]["y"])), [sprite])
-            newPlayerShadow = JulGame.EntityModule.Entity("$(MAIN.globals[1]) shadow", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["position"]["x"], player.second["position"]["y"])), [sprite1])
-            newPlayerArrow = JulGame.EntityModule.Entity("$(MAIN.globals[1]) arrow", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["position"]["x"] + 0.30, player.second["position"]["y"] - 0.9), JulGame.Math.Vector2f(0.5, 0.25)), [sprite2])
-            newPlayer.addScript(PlayerMovement([newPlayerShadow, newPlayerArrow]))
+            newPlayer = JulGame.EntityModule.Entity("$(MAIN.globals[1])", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["position"]["x"], player.second["position"]["y"])))
+            newPlayer.sprite = sprite
+            newPlayerShadow = JulGame.EntityModule.Entity("$(MAIN.globals[1]) shadow", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["position"]["x"], player.second["position"]["y"])))
+            newPlayerShadow.sprite = sprite1
+            newPlayerArrow = JulGame.EntityModule.Entity("$(MAIN.globals[1]) arrow", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["position"]["x"] + 0.30, player.second["position"]["y"] - 0.9), JulGame.Math.Vector2f(0.5, 0.25)))
+            newPlayerArrow.sprite = sprite2
+            JulGame.add_script(newPlayer, PlayerMovement([newPlayerShadow, newPlayerArrow]))
 
             push!(MAIN.scene.entities, newPlayerShadow)
             push!(MAIN.scene.entities, newPlayer)
@@ -399,14 +401,14 @@ function Base.getproperty(this::GameManager, s::Symbol)
             colors = ["blue", "pink", "red", "yellow", "green", "purple"]
             colorIndex = findfirst(x -> x == player.second["color"], colors) - 1
 
-            sprite = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "characters.png")
-            sprite1 = JulGame.SpriteModule.Sprite(joinpath(pwd(),".."), "shadow.png")
-            sprite.injectRenderer(MAIN.renderer)
-            sprite1.injectRenderer(MAIN.renderer)
+            sprite = JulGame.SpriteModule.InternalSprite(this.parent::Entity, "characters.png", C_NULL, false, Vector3(255, 255, 255), false; isWorldEntity=true)
+            sprite1 = JulGame.SpriteModule.InternalSprite(this.parent::Entity, "shadow.png", C_NULL, false, Vector3(0,0,0), false; isWorldEntity=true)
             sprite.crop = JulGame.Math.Vector4(16,colorIndex*16,16,16)
-            newPlayer = JulGame.EntityModule.Entity("other player", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["position"]["x"], player.second["position"]["y"])), [sprite])
-            newPlayerShadow = JulGame.EntityModule.Entity("other player shadow", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["position"]["x"], player.second["position"]["y"])), [sprite1])
-            newPlayer.addScript(OtherPlayerMovement(newPlayerShadow))
+            newPlayer = JulGame.EntityModule.Entity("other player", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["position"]["x"], player.second["position"]["y"])))
+            newPlayer.sprite = sprite
+            newPlayerShadow = JulGame.EntityModule.Entity("other player shadow", JulGame.TransformModule.Transform(JulGame.Math.Vector2f(player.second["position"]["x"], player.second["position"]["y"])))
+            newPlayerShadow.sprite = sprite1
+            JulGame.add_script(newPlayer, OtherPlayerMovement(newPlayerShadow))
 
             push!(MAIN.scene.entities, newPlayerShadow)
             push!(MAIN.scene.entities, newPlayer)
